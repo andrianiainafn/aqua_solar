@@ -44,72 +44,111 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --radius: 0.5rem;
+
+  /* Fond crème chaud - Base solaire */
+  --background: rgb(255, 253, 247);
+  --foreground: rgb(28, 25, 23);
+
+  /* Cartes légèrement dorées */
+  --card: rgb(255, 255, 255);
+  --card-foreground: rgb(28, 25, 23);
+  --popover: rgb(255, 255, 255);
+  --popover-foreground: rgb(28, 25, 23);
+
+  /* Primaire - Jaune Solaire (Énergie) */
+  --primary: #eab308;
+  --primary-foreground: rgb(28, 25, 23);
+
+  /* Secondaire - Vert pour contraste eau/agriculture */
+  --secondary: rgb(16, 185, 129);
+  --secondary-foreground: rgb(255, 255, 255);
+
+  /* Éléments atténués - Tons chauds */
+  --muted: rgb(250, 250, 249);
+  --muted-foreground: rgb(120, 113, 108);
+
+  /* Accent - Bleu aquatique pour l'eau */
+  --accent: #0ea5e9;
+  --accent-foreground: rgb(255, 255, 255);
+
+  /* Destructive */
+  --destructive: rgb(239, 68, 68);
+
+  /* Bordures douces */
+  --border: rgb(231, 229, 228);
+  --input: rgb(231, 229, 228);
+  --ring: rgb(234, 179, 8);
+
+  /* Charts - Palette solaire harmonieuse */
+  --chart-1: rgb(234, 179, 8);     /* Jaune - Énergie solaire */
+  --chart-2: rgb(16, 185, 129);    /* Vert - Agriculture */
+  --chart-3: rgb(14, 165, 233);    /* Bleu - Eau */
+  --chart-4: rgb(251, 146, 60);    /* Orange - Communauté */
+  --chart-5: rgb(168, 85, 247);    /* Violet - IA */
+
+  /* Sidebar lumineuse */
+  --sidebar: rgb(255, 253, 247);
+  --sidebar-foreground: rgb(28, 25, 23);
+  --sidebar-primary: rgb(234, 179, 8);
+  --sidebar-primary-foreground: rgb(28, 25, 23);
+  --sidebar-accent: rgb(254, 243, 199);
+  --sidebar-accent-foreground: rgb(28, 25, 23);
+  --sidebar-border: rgb(231, 229, 228);
+  --sidebar-ring: rgb(234, 179, 8);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Fond sombre chaud */
+  --background: rgb(28, 25, 23);
+  --foreground: rgb(250, 250, 249);
+
+  /* Cartes sombres */
+  --card: rgb(41, 37, 36);
+  --card-foreground: rgb(250, 250, 249);
+  --popover: rgb(41, 37, 36);
+  --popover-foreground: rgb(250, 250, 249);
+
+  /* Primaire - Jaune lumineux */
+  --primary: rgb(250, 204, 21);
+  --primary-foreground: rgb(28, 25, 23);
+
+  /* Secondaire - Vert vif */
+  --secondary: rgb(34, 197, 94);
+  --secondary-foreground: rgb(28, 25, 23);
+
+  /* Éléments atténués */
+  --muted: rgb(68, 64, 60);
+  --muted-foreground: rgb(168, 162, 158);
+
+  /* Accent - Bleu clair */
+  --accent: rgb(56, 189, 248);
+  --accent-foreground: rgb(28, 25, 23);
+
+  /* Destructive */
+  --destructive: rgb(248, 113, 113);
+
+  /* Bordures */
+  --border: rgb(68, 64, 60);
+  --input: rgb(68, 64, 60);
+  --ring: rgb(250, 204, 21);
+
+  /* Charts mode sombre */
+  --chart-1: rgb(250, 204, 21);    /* Jaune lumineux */
+  --chart-2: rgb(34, 197, 94);     /* Vert vif */
+  --chart-3: rgb(56, 189, 248);    /* Bleu clair */
+  --chart-4: rgb(251, 146, 60);    /* Orange */
+  --chart-5: rgb(192, 132, 252);   /* Violet clair */
+
+  /* Sidebar sombre */
+  --sidebar: rgb(28, 25, 23);
+  --sidebar-foreground: rgb(250, 250, 249);
+  --sidebar-primary: rgb(250, 204, 21);
+  --sidebar-primary-foreground: rgb(28, 25, 23);
+  --sidebar-accent: rgb(68, 64, 60);
+  --sidebar-accent-foreground: rgb(250, 250, 249);
+  --sidebar-border: rgb(68, 64, 60);
+  --sidebar-ring: rgb(250, 204, 21);
 }
 
 @layer base {
