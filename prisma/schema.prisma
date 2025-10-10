@@ -1,0 +1,59 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Example models for AquaSolar project
+// Modify these according to your needs
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  projects  Project[]
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  location    String?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  systems     SolarSystem[]
+}
+
+model SolarSystem {
+  id          String   @id @default(cuid())
+  name        String
+  capacity    Float    // in kW
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  readings    Reading[]
+}
+
+model Reading {
+  id            String      @id @default(cuid())
+  systemId      String
+  system        SolarSystem @relation(fields: [systemId], references: [id], onDelete: Cascade)
+  powerOutput   Float       // in kW
+  waterVolume   Float?      // in liters
+  temperature   Float?      // in Celsius
+  timestamp     DateTime    @default(now())
+  
+  @@index([systemId, timestamp])
+}
+
