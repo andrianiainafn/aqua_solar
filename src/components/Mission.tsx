@@ -59,7 +59,7 @@ export function Mission() {
           </div>
 
           <div>
-            <h3 className="text-2xl md:text-3xl lg:text-4xl text-gray-900 mb-4 leading-tight">
+            <h3 className="text-2xl md:text-3xl lg:text-4xl text-gray-900 mb-4 leading-tight font-semibold">
               Une Énergie 100%{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-yellow-500">
                 Traçable

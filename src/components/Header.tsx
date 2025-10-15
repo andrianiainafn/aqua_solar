@@ -3,6 +3,7 @@
 import { Button } from "./ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -40,9 +41,11 @@ export function Header() {
 
           {/* CTA Button */}
           <div className="hidden md:block">
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-              Commencer
-            </Button>
+            <Link href="/login">
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                Commencer
+              </Button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -73,9 +76,11 @@ export function Header() {
               <a href="#contact" className="text-gray-600 hover:text-gray-900 transition-colors">
                 Contact
               </a>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white w-full">
-                Commencer
-              </Button>
+              <Link href="/login">
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white w-full">
+                  Commencer
+                </Button>
+              </Link>
             </nav>
           </div>
         )}
