@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import {
-  Zap,
-  Sun,
+  Droplet,
+  Cloud,
   AlertCircle,
   TrendingUp,
   ArrowUpRight,
   CheckCircle2,
-  Battery,
+  Waves,
 } from "lucide-react";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
@@ -25,78 +25,101 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 
-// Simulation de données pour l'historique de production (24 dernières heures)
-const generateProductionHistory = () => {
+// Simulation de données pour l'historique de distribution (24 dernières heures)
+const generateDistributionHistory = () => {
   const data = [];
   const now = new Date();
   for (let i = 23; i >= 0; i--) {
     const hour = new Date(now.getTime() - i * 60 * 60 * 1000);
     const hourNum = hour.getHours();
-    // Simulation: production plus élevée entre 8h et 18h (heures solaires)
-    let production = 0;
-    if (hourNum >= 6 && hourNum <= 19) {
-      production = Math.max(
-        0,
-        Math.sin(((hourNum - 6) * Math.PI) / 13) * 1.5 + Math.random() * 0.3,
-      );
+    // Simulation: pompage plus élevé pendant les heures d'activité (6h-22h)
+    let pumped = 0;
+    if (hourNum >= 6 && hourNum <= 22) {
+      // Pics le matin (7h-9h) et le soir (18h-20h)
+      if ((hourNum >= 7 && hourNum <= 9) || (hourNum >= 18 && hourNum <= 20)) {
+        pumped = 15 + Math.random() * 10;
+      } else {
+        pumped = 5 + Math.random() * 5;
+      }
     }
     data.push({
       time: `${hourNum}h`,
-      production: parseFloat(production.toFixed(2)),
+      pumped: parseFloat(pumped.toFixed(1)),
     });
   }
   return data;
 };
 
 // Simulation des prévisions pour les 7 prochains jours
-const generateForecast = () => {
+const generateWaterForecast = () => {
   const days = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
-  return days.map((day, index) => ({
-    day,
-    forecast: parseFloat((8 + Math.random() * 4).toFixed(1)),
-    trend: Math.random() > 0.5 ? "up" : "down",
-  }));
+  const weatherConditions = ["☀️", "🌤️", "⛅", "🌧️", "⛈️"];
+
+  return days.map((day, index) => {
+    const rainChance = Math.random();
+    const weather = rainChance > 0.7 ? "🌧️" : rainChance > 0.5 ? "⛅" : "☀️";
+    const forecast = parseFloat(
+      (200 + Math.random() * 100 + (rainChance > 0.7 ? 50 : 0)).toFixed(0),
+    );
+
+    return {
+      day,
+      forecast,
+      weather,
+      rainChance: rainChance > 0.7,
+    };
+  });
 };
 
-export function Energy() {
-  const [currentEnergy, setCurrentEnergy] = useState(5.2);
-  const [totalProducedToday, setTotalProducedToday] = useState(10.8);
+export function Water() {
+  const [currentWater, setCurrentWater] = useState(200);
+  const [totalPumpedToday, setTotalPumpedToday] = useState(150);
   const [systemStatus, setSystemStatus] = useState<
     "active" | "maintenance" | "offline"
   >("active");
-  const [batteryLevel, setBatteryLevel] = useState(78);
-  const [productionHistory] = useState(generateProductionHistory());
-  const [forecast] = useState(generateForecast());
+  const [tankLevel, setTankLevel] = useState(65);
+  const [waterQuality, setWaterQuality] = useState<
+    "excellent" | "good" | "fair"
+  >("excellent");
+  const [distributionHistory] = useState(generateDistributionHistory());
+  const [forecast] = useState(generateWaterForecast());
   const [selling, setSelling] = useState(false);
 
   // Simulation de mise à jour en temps réel
   useEffect(() => {
     const interval = setInterval(() => {
       const hour = new Date().getHours();
-      // Production solaire active entre 6h et 19h
-      if (hour >= 6 && hour <= 19 && systemStatus === "active") {
-        setCurrentEnergy((prev) => Math.min(20, prev + Math.random() * 0.1));
-        setTotalProducedToday((prev) => prev + Math.random() * 0.05);
+      // Pompage actif entre 6h et 22h
+      if (hour >= 6 && hour <= 22 && systemStatus === "active") {
+        // Consommation aléatoire
+        const consumption = Math.random() * 0.5;
+        setCurrentWater((prev) => Math.max(0, prev - consumption));
+        setTotalPumpedToday((prev) => prev + consumption);
+
+        // Remplissage automatique si niveau bas
+        if (currentWater < 50) {
+          setCurrentWater((prev) => Math.min(500, prev + 2));
+        }
       }
-    }, 5000);
+    }, 8000);
 
     return () => clearInterval(interval);
-  }, [systemStatus]);
+  }, [systemStatus, currentWater]);
 
-  const handleSellEnergy = async () => {
+  const handleSellWater = async () => {
     setSelling(true);
 
     // Simulation de transaction blockchain
     setTimeout(() => {
-      setCurrentEnergy((prev) => Math.max(0, prev - 1));
+      setCurrentWater((prev) => Math.max(0, prev - 50));
       setSelling(false);
       toast.success("Transaction réussie !", {
-        description: "Vente de 1 kWh à Village de Kpalimé pour 0.05€",
+        description: "Vente de 50 litres à Village de Lomé pour 1.00€",
       });
-    }, 1000);
+    }, 2000);
   };
 
-  const energyPercentage = (currentEnergy / 20) * 100;
+  const waterPercentage = (currentWater / 500) * 100;
 
   return (
     <div className="space-y-6">
@@ -104,13 +127,13 @@ export function Energy() {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-gray-600 mt-1">
-            Suivi en temps réel de votre production et consommation solaire
+            Suivi en temps réel de votre distribution et stockage d'eau potable
           </p>
         </div>
         <Badge
           className={`px-4 py-2 ${
             systemStatus === "active"
-              ? "bg-green-100 text-green-700 border-green-200"
+              ? "bg-blue-100 text-blue-700 border-blue-200"
               : systemStatus === "maintenance"
                 ? "bg-orange-100 text-orange-700 border-orange-200"
                 : "bg-red-100 text-red-700 border-red-200"
@@ -126,67 +149,69 @@ export function Energy() {
 
       {/* Statut du système et alertes */}
       <div className="grid md:grid-cols-3 gap-6">
-        <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+        <Card className="p-6 bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-green-700 mb-1">Statut Panneaux</p>
+              <p className="text-sm text-blue-700 mb-1">Statut Pompes</p>
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="text-green-600" size={20} />
-                <span className="text-2xl font-bold text-green-900">
+                <CheckCircle2 className="text-blue-600" size={20} />
+                <span className="text-2xl font-bold text-blue-900">
                   {systemStatus === "active" ? "Opérationnel" : "Maintenance"}
                 </span>
               </div>
             </div>
-            <Sun className="text-green-600" size={32} />
+            <Waves className="text-blue-600" size={32} />
           </div>
-          <p className="text-sm text-green-700 mt-3">
-            12 panneaux actifs • 3.6 kWc installé
+          <p className="text-sm text-blue-700 mt-3">
+            3 pompes actives • Débit: 45 L/min
           </p>
         </Card>
 
-        <Card className="p-6 bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200">
+        <Card className="p-6 bg-gradient-to-br from-cyan-50 to-teal-50 border-cyan-200">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-blue-700 mb-1">Niveau Batterie</p>
+              <p className="text-sm text-cyan-700 mb-1">Niveau Réservoir</p>
               <div className="flex items-center gap-2">
-                <Battery className="text-blue-600" size={20} />
-                <span className="text-2xl font-bold text-blue-900">
-                  {batteryLevel}%
+                <Droplet className="text-cyan-600" size={20} />
+                <span className="text-2xl font-bold text-cyan-900">
+                  {tankLevel}%
                 </span>
               </div>
             </div>
-            <Zap className="text-blue-600" size={32} />
+            <Droplet className="text-cyan-600" size={32} />
           </div>
-          <Progress value={batteryLevel} className="mt-3 h-2" />
+          <Progress value={tankLevel} className="mt-3 h-2" />
         </Card>
 
-        <Card className="p-6 bg-gradient-to-br from-yellow-50 to-amber-50 border-yellow-200">
+        <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-yellow-700 mb-1">Météo Soleil</p>
+              <p className="text-sm text-green-700 mb-1">Qualité de l'Eau</p>
               <div className="flex items-center gap-2">
-                <Sun className="text-yellow-600" size={20} />
-                <span className="text-2xl font-bold text-yellow-900">
-                  Ensoleillé
+                <CheckCircle2 className="text-green-600" size={20} />
+                <span className="text-2xl font-bold text-green-900">
+                  {waterQuality === "excellent"
+                    ? "Excellente"
+                    : waterQuality === "good"
+                      ? "Bonne"
+                      : "Correcte"}
                 </span>
               </div>
             </div>
-            <TrendingUp className="text-yellow-600" size={32} />
+            <AlertCircle className="text-green-600" size={32} />
           </div>
-          <p className="text-sm text-yellow-700 mt-3">
-            Conditions optimales pour production
+          <p className="text-sm text-green-700 mt-3">
+            pH: 7.2 • Potable • Filtré
           </p>
         </Card>
       </div>
 
-      {/* Énergie disponible et actions */}
+      {/* Eau disponible et actions */}
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Jauge d'énergie disponible */}
+        {/* Jauge d'eau disponible */}
         <Card className="lg:col-span-2 p-8">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-gray-900">
-              Énergie Disponible
-            </h3>
+            <h3 className="text-xl font-bold text-gray-900">Eau Disponible</h3>
             <span className="text-sm text-gray-500">
               Mise à jour en temps réel
             </span>
@@ -207,28 +232,28 @@ export function Energy() {
                       strokeWidth="16"
                       fill="none"
                     />
-                    {/* Cercle de progression avec gradient */}
+                    {/* Cercle de progression avec gradient bleu */}
                     <circle
                       cx="128"
                       cy="128"
                       r="120"
-                      stroke="url(#energyGradient)"
+                      stroke="url(#waterGradient)"
                       strokeWidth="16"
                       fill="none"
                       strokeDasharray={`${2 * Math.PI * 120}`}
-                      strokeDashoffset={`${2 * Math.PI * 120 * (1 - energyPercentage / 100)}`}
+                      strokeDashoffset={`${2 * Math.PI * 120 * (1 - waterPercentage / 100)}`}
                       strokeLinecap="round"
                       className="transition-all duration-1000"
                     />
                     <defs>
                       <linearGradient
-                        id="energyGradient"
+                        id="waterGradient"
                         x1="0%"
                         y1="0%"
                         x2="100%"
                         y2="0%"
                       >
-                        <stop offset="0%" stopColor="#fbbf24" />
+                        <stop offset="0%" stopColor="#06b6d4" />
                         <stop offset="100%" stopColor="#2563eb" />
                       </linearGradient>
                     </defs>
@@ -236,14 +261,14 @@ export function Energy() {
 
                   {/* Texte central */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <Zap className="text-yellow-500 mb-2" size={32} />
+                    <Droplet className="text-cyan-500 mb-2" size={32} />
                     <span className="text-5xl font-bold text-gray-900">
-                      {currentEnergy.toFixed(1)}
+                      {currentWater.toFixed(0)}
                     </span>
-                    <span className="text-gray-600 mt-1">kWh</span>
-                    <div className="mt-4 px-4 py-1 bg-blue-100 rounded-full">
-                      <span className="text-sm text-blue-700 font-semibold">
-                        {energyPercentage.toFixed(0)}% capacité
+                    <span className="text-gray-600 mt-1">litres</span>
+                    <div className="mt-4 px-4 py-1 bg-cyan-100 rounded-full">
+                      <span className="text-sm text-cyan-700 font-semibold">
+                        {waterPercentage.toFixed(0)}% capacité
                       </span>
                     </div>
                   </div>
@@ -256,24 +281,24 @@ export function Energy() {
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-gray-600">Capacité de stockage</span>
                 <span className="text-gray-900 font-semibold">
-                  {currentEnergy.toFixed(1)} / 20 kWh
+                  {currentWater.toFixed(0)} / 500 litres
                 </span>
               </div>
-              <Progress value={energyPercentage} className="h-3" />
+              <Progress value={waterPercentage} className="h-3" />
             </div>
 
             {/* Stats du jour */}
             <div className="grid grid-cols-2 gap-4 pt-4 border-t">
               <div>
-                <p className="text-sm text-gray-600">Produit aujourd'hui</p>
+                <p className="text-sm text-gray-600">Pompé aujourd'hui</p>
                 <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {totalProducedToday.toFixed(1)} kWh
+                  {totalPumpedToday.toFixed(0)} L
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Consommé aujourd'hui</p>
+                <p className="text-sm text-gray-600">Distribué aujourd'hui</p>
                 <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {(totalProducedToday - currentEnergy).toFixed(1)} kWh
+                  {(totalPumpedToday - currentWater + 200).toFixed(0)} L
                 </p>
               </div>
             </div>
@@ -281,86 +306,86 @@ export function Energy() {
         </Card>
 
         {/* Bouton de vente/exchange */}
-        <Card className="p-8 bg-gradient-to-br from-blue-600 to-blue-700 text-white">
+        <Card className="p-8 bg-gradient-to-br from-cyan-600 to-blue-700 text-white">
           <div className="h-full flex flex-col">
             <div className="flex-1">
               <div className="inline-flex items-center justify-center w-12 h-12 bg-white/20 rounded-lg mb-4">
                 <ArrowUpRight size={24} />
               </div>
-              <h3 className="text-xl font-bold mb-2">Vendre votre Énergie</h3>
-              <p className="text-blue-100 text-sm mb-6">
-                Échangez votre surplus d'énergie avec d'autres villages du
+              <h3 className="text-xl font-bold mb-2">Vendre votre Eau</h3>
+              <p className="text-cyan-100 text-sm mb-6">
+                Échangez votre surplus d'eau potable avec d'autres villages du
                 réseau
               </p>
 
               {/* Détails de la vente */}
               <div className="bg-white/10 rounded-lg p-4 mb-6 backdrop-blur-sm">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-blue-100">Quantité</span>
-                  <span className="font-bold">1 kWh</span>
+                  <span className="text-sm text-cyan-100">Quantité</span>
+                  <span className="font-bold">50 litres</span>
                 </div>
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-blue-100">Prix unitaire</span>
-                  <span className="font-bold">0.05 €</span>
+                  <span className="text-sm text-cyan-100">Prix unitaire</span>
+                  <span className="font-bold">0.02 €/L</span>
                 </div>
                 <div className="border-t border-white/20 pt-2 mt-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-blue-100">Total</span>
-                    <span className="text-lg font-bold">0.05 €</span>
+                    <span className="text-sm text-cyan-100">Total</span>
+                    <span className="text-lg font-bold">1.00 €</span>
                   </div>
                 </div>
               </div>
 
-              <p className="text-xs text-blue-100 mb-4">
+              <p className="text-xs text-cyan-100 mb-4">
                 🔐 Transaction sécurisée via Hedera Blockchain
               </p>
             </div>
 
             <Button
-              onClick={handleSellEnergy}
-              disabled={selling || currentEnergy < 1}
-              className="w-full bg-white text-blue-600 hover:bg-blue-50 font-semibold py-6"
+              onClick={handleSellWater}
+              disabled={selling || currentWater < 50}
+              className="w-full bg-white text-cyan-600 hover:bg-cyan-50 font-semibold py-6"
             >
               {selling ? "Transaction en cours..." : "Vendre maintenant"}
             </Button>
 
-            {currentEnergy < 1 && (
-              <p className="text-xs text-blue-200 text-center mt-2">
-                Énergie insuffisante pour la vente
+            {currentWater < 50 && (
+              <p className="text-xs text-cyan-200 text-center mt-2">
+                Eau insuffisante pour la vente
               </p>
             )}
           </div>
         </Card>
       </div>
 
-      {/* Historique de production */}
+      {/* Historique de distribution */}
       <Card className="p-8">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-xl font-bold text-gray-900">
-              Historique de Production
+              Historique de Distribution
             </h3>
             <p className="text-sm text-gray-600 mt-1">
-              Production des dernières 24 heures
+              Volumes pompés des dernières 24 heures
             </p>
           </div>
-          <Badge className="bg-green-100 text-green-700 border-green-200">
-            ↑ +15% vs hier
+          <Badge className="bg-cyan-100 text-cyan-700 border-cyan-200">
+            ↑ +12% vs hier
           </Badge>
         </div>
 
         <ResponsiveContainer width="100%" height={300}>
-          <AreaChart data={productionHistory}>
+          <AreaChart data={distributionHistory}>
             <defs>
               <linearGradient
-                id="productionGradient"
+                id="distributionGradient"
                 x1="0"
                 y1="0"
                 x2="0"
                 y2="1"
               >
-                <stop offset="5%" stopColor="#fbbf24" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="#fbbf24" stopOpacity={0} />
+                <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.8} />
+                <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -373,7 +398,7 @@ export function Energy() {
               stroke="#6b7280"
               tick={{ fill: "#6b7280", fontSize: 12 }}
               label={{
-                value: "kWh",
+                value: "Litres",
                 angle: -90,
                 position: "insideLeft",
                 fill: "#6b7280",
@@ -389,13 +414,35 @@ export function Energy() {
             />
             <Area
               type="monotone"
-              dataKey="production"
-              stroke="#fbbf24"
+              dataKey="pumped"
+              stroke="#06b6d4"
               strokeWidth={2}
-              fill="url(#productionGradient)"
+              fill="url(#distributionGradient)"
             />
           </AreaChart>
         </ResponsiveContainer>
+
+        {/* Statistiques de consommation */}
+        <div className="grid md:grid-cols-4 gap-4 mt-6 pt-6 border-t">
+          <div className="text-center">
+            <p className="text-sm text-gray-600 mb-1">Pic de consommation</p>
+            <p className="text-xl font-bold text-gray-900">19h00</p>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-gray-600 mb-1">Moyenne horaire</p>
+            <p className="text-xl font-bold text-gray-900">8.5 L/h</p>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-gray-600 mb-1">Total pompé 24h</p>
+            <p className="text-xl font-bold text-gray-900">
+              {totalPumpedToday.toFixed(0)} L
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-gray-600 mb-1">Efficacité pompes</p>
+            <p className="text-xl font-bold text-green-600">95%</p>
+          </div>
+        </div>
       </Card>
 
       {/* Prévisions IA */}
@@ -407,34 +454,34 @@ export function Energy() {
               Prédictions basées sur les données météorologiques et l'historique
             </p>
           </div>
-          <div className="flex items-center gap-2 text-blue-600">
+          <div className="flex items-center gap-2 text-cyan-600">
             <AlertCircle size={16} />
             <span className="text-sm font-semibold">Alimenté par IA</span>
           </div>
         </div>
 
         {/* Prévision du lendemain (mise en avant) */}
-        <div className="bg-gradient-to-r from-blue-50 to-yellow-50 rounded-xl p-6 mb-6 border border-blue-100">
+        <div className="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl p-6 mb-6 border border-cyan-100">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">
                 Prévision pour demain
               </p>
               <div className="flex items-center gap-3">
-                <Sun className="text-yellow-500" size={32} />
+                <Cloud className="text-blue-500" size={32} />
                 <div>
-                  <p className="text-3xl font-bold text-gray-900">+20%</p>
+                  <p className="text-3xl font-bold text-gray-900">+10%</p>
                   <p className="text-sm text-gray-600">
-                    d'énergie grâce au soleil
+                    d'eau grâce à la pluie 🌧️
                   </p>
                 </div>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-bold text-blue-600">
-                ~{(totalProducedToday * 1.2).toFixed(1)} kWh
+              <p className="text-2xl font-bold text-cyan-600">
+                ~{(currentWater * 1.1).toFixed(0)} L
               </p>
-              <p className="text-sm text-gray-600">Production estimée</p>
+              <p className="text-sm text-gray-600">Disponibilité estimée</p>
             </div>
           </div>
         </div>
@@ -456,7 +503,7 @@ export function Energy() {
                 stroke="#6b7280"
                 tick={{ fill: "#6b7280", fontSize: 12 }}
                 label={{
-                  value: "kWh",
+                  value: "Litres",
                   angle: -90,
                   position: "insideLeft",
                   fill: "#6b7280",
@@ -469,23 +516,52 @@ export function Energy() {
                   borderRadius: "8px",
                   boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                 }}
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
+                        <p className="font-semibold text-gray-900">
+                          {data.day}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {data.forecast} litres {data.weather}
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
               />
               <Line
                 type="monotone"
                 dataKey="forecast"
-                stroke="#2563eb"
+                stroke="#06b6d4"
                 strokeWidth={3}
-                dot={{ fill: "#2563eb", r: 5 }}
+                dot={{ fill: "#06b6d4", r: 5 }}
                 activeDot={{ r: 7 }}
               />
             </LineChart>
           </ResponsiveContainer>
+
+          {/* Légende météo */}
+          <div className="flex justify-center gap-6 mt-4 text-sm text-gray-600">
+            <div className="flex items-center gap-2">
+              <span>☀️ Ensoleillé</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span>⛅ Partiellement nuageux</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span>🌧️ Pluie prévue</span>
+            </div>
+          </div>
         </div>
 
         {/* Recommandations IA */}
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+        <div className="mt-6 p-4 bg-cyan-50 rounded-lg border border-cyan-100">
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+            <div className="w-8 h-8 bg-cyan-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
               <TrendingUp className="text-white" size={16} />
             </div>
             <div>
@@ -493,10 +569,11 @@ export function Energy() {
                 Recommandation du système
               </h5>
               <p className="text-sm text-gray-700">
-                Les prévisions indiquent un pic de production mercredi. Nous
-                recommandons de planifier vos activités énergivores ce jour-là
-                ou de vendre l'excédent sur le réseau DePIN pour maximiser vos
-                revenus.
+                Les prévisions indiquent des précipitations jeudi et vendredi.
+                Nous recommandons de réduire le pompage ces jours-là pour
+                économiser l'énergie et capitaliser sur l'eau de pluie. Vous
+                pourriez vendre votre surplus actuel avant les pluies pour
+                optimiser vos revenus.
               </p>
             </div>
           </div>

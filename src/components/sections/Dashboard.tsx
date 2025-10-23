@@ -8,6 +8,7 @@ import { TransactionsList } from "../dashboard/TransactionsList";
 import { AIPredictions } from "../dashboard/AIPredictions";
 import { VillagesMap } from "../dashboard/VillagesMap";
 import { Energy } from "./Energy";
+import { Water } from "./Water";
 
 interface DashboardProps {
   onLogout?: () => void;
@@ -93,17 +94,22 @@ export function Dashboard({ onLogout }: DashboardProps) {
           {/* Energy Tab */}
           {activeTab === "energy" && <Energy />}
 
+          {/* Water Tab */}
+          {activeTab === "water" && <Water />}
+
           {/* Other tabs content */}
-          {activeTab !== "dashboard" && (
-            <div className="bg-white rounded-xl p-12 border border-gray-200 text-center">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
-              </h2>
-              <p className="text-gray-600">
-                Cette section est en cours de développement
-              </p>
-            </div>
-          )}
+          {activeTab !== "dashboard" &&
+            activeTab !== "energy" &&
+            activeTab !== "water" && (
+              <div className="bg-white rounded-xl p-12 border border-gray-200 text-center">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+                </h2>
+                <p className="text-gray-600">
+                  Cette section est en cours de développement
+                </p>
+              </div>
+            )}
         </div>
       </main>
     </div>

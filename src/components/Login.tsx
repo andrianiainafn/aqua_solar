@@ -9,6 +9,7 @@ import { Lock, Mail, Zap, ArrowLeft } from "lucide-react";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Logo } from "./Logo";
 
 export function Login() {
   const [email, setEmail] = useState("");
@@ -18,7 +19,7 @@ export function Login() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Login attempt:", { email, password });
-    
+
     // Redirection vers le dashboard après connexion
     router.push("/dashboard");
   };
@@ -30,30 +31,19 @@ export function Login() {
         <div className="w-full max-w-md">
           {/* Back to Home Link */}
           <Link href="/">
-            <button
-              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8 transition-colors"
-            >
+            <button className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8 transition-colors">
               <ArrowLeft size={20} />
               <span>Retour à l&apos;accueil</span>
             </button>
           </Link>
 
           {/* Logo */}
-          <div className="flex items-center gap-2 mb-8">
-            <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-blue-600 rounded-lg flex items-center justify-center">
-              <div className="w-8 h-8 border-2 border-white rounded-full"></div>
-            </div>
-            <span className="text-gray-900 text-xl">PowerChain</span>
-          </div>
+          <Logo variant="icon" size="lg" />
 
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-gray-900 mb-2">
-              Bienvenue
-            </h1>
-            <p className="text-gray-600">
-              Connectez-vous à votre espace
-            </p>
+            <h1 className="text-gray-900 mb-2 text-4xl font-bold">Bienvenue</h1>
+            <p className="text-gray-600">Connectez-vous à votre espace</p>
           </div>
 
           {/* Form */}
@@ -64,7 +54,10 @@ export function Login() {
                 Adresse email
               </Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                <Mail
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={20}
+                />
                 <Input
                   id="email"
                   type="email"
@@ -83,7 +76,10 @@ export function Login() {
                 Mot de passe
               </Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                <Lock
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={20}
+                />
                 <Input
                   id="password"
                   type="password"
@@ -107,14 +103,17 @@ export function Login() {
                   Se souvenir de moi
                 </label>
               </div>
-              <a href="#" className="text-sm text-blue-600 hover:text-blue-700 transition-colors">
+              <a
+                href="#"
+                className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
+              >
                 Mot de passe oublié ?
               </a>
             </div>
 
             {/* Submit Button */}
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full bg-blue-600 hover:bg-blue-700 text-white"
               size="lg"
             >
@@ -126,7 +125,10 @@ export function Login() {
           {/* Sign Up Link */}
           <p className="mt-8 text-center text-gray-600">
             Vous n&apos;avez pas de compte ?{" "}
-            <a href="#" className="text-blue-600 hover:text-blue-700 font-semibold transition-colors">
+            <a
+              href="#"
+              className="text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+            >
               Créer un compte
             </a>
           </p>
@@ -159,26 +161,44 @@ export function Login() {
             {/* Title */}
             <h2 className="text-4xl mb-6 leading-tight">
               Accédez à votre{" "}
-              <span className="text-yellow-400">
-                Énergie Verte
-              </span>
+              <span className="text-yellow-400">Énergie Verte</span>
             </h2>
 
             <p className="text-gray-300 text-lg mb-8 leading-relaxed">
-              Gérez votre production et consommation d&apos;énergie en temps réel sur notre plateforme blockchain.
+              Gérez votre production et consommation d&apos;énergie en temps
+              réel sur notre plateforme blockchain.
             </p>
 
             {/* Features */}
             <div className="space-y-4">
               {[
-                { title: "Traçabilité totale", desc: "Chaque kilowatt-heure tracé sur la blockchain" },
-                { title: "Transactions sécurisées", desc: "Échangez votre énergie en toute sécurité" },
-                { title: "Impact environnemental", desc: "Visualisez votre contribution écologique" }
+                {
+                  title: "Traçabilité totale",
+                  desc: "Chaque kilowatt-heure tracé sur la blockchain",
+                },
+                {
+                  title: "Transactions sécurisées",
+                  desc: "Échangez votre énergie en toute sécurité",
+                },
+                {
+                  title: "Impact environnemental",
+                  desc: "Visualisez votre contribution écologique",
+                },
               ].map((feature, index) => (
                 <div key={index} className="flex items-start gap-3">
                   <div className="w-6 h-6 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    <svg
+                      className="w-4 h-4 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
                     </svg>
                   </div>
                   <div>

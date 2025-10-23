@@ -1,19 +1,20 @@
 "use client";
 
-import { 
-  LayoutDashboard, 
-  Zap, 
-  Droplet, 
-  ArrowLeftRight, 
-  TrendingUp, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Zap,
+  Droplet,
+  ArrowLeftRight,
+  TrendingUp,
+  Settings,
   Users,
   MapPin,
   LogOut,
   Menu,
-  X
+  X,
 } from "lucide-react";
 import { useState } from "react";
+import { Logo } from "../Logo";
 
 interface SidebarProps {
   activeTab: string;
@@ -56,13 +57,11 @@ export function Sidebar({ activeTab, onTabChange, onLogout }: SidebarProps) {
       >
         <div className="h-full flex flex-col">
           {/* Logo */}
-          <div className="p-6 border-b border-gray-200">
+          <div className="p-2 border-b border-gray-200">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-blue-600 rounded-lg flex items-center justify-center">
-                <div className="w-6 h-6 border-2 border-white rounded-full"></div>
-              </div>
+              <Logo variant="icon" size="lg" />
               <div>
-                <h1 className="font-bold text-gray-900">AquaSolar</h1>
+                <h1 className="font-bold text-gray-900">Heliosol Flow</h1>
                 <p className="text-xs text-gray-500">Admin Dashboard</p>
               </div>
             </div>

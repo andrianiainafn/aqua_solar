@@ -4,6 +4,7 @@ import { Button } from "./ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
+import { Logo } from "./Logo";
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -13,28 +14,38 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-blue-600 rounded-lg flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-white rounded-full"></div>
-            </div>
-            <span className="text-gray-900">PowerChain</span>
-          </div>
+          <Logo variant="compact" size="md" />
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
-            <a href="#solutions" className="text-gray-600 hover:text-gray-900 transition-colors">
+            <a
+              href="#solutions"
+              className="text-gray-600 hover:text-gray-900 transition-colors"
+            >
               Solutions
             </a>
-            <a href="#platform" className="text-gray-600 hover:text-gray-900 transition-colors">
+            <a
+              href="#platform"
+              className="text-gray-600 hover:text-gray-900 transition-colors"
+            >
               Plateforme
             </a>
-            <a href="#about" className="text-gray-600 hover:text-gray-900 transition-colors">
+            <a
+              href="#about"
+              className="text-gray-600 hover:text-gray-900 transition-colors"
+            >
               À propos
             </a>
-            <a href="#news" className="text-gray-600 hover:text-gray-900 transition-colors">
+            <a
+              href="#news"
+              className="text-gray-600 hover:text-gray-900 transition-colors"
+            >
               Actualités
             </a>
-            <a href="#contact" className="text-gray-600 hover:text-gray-900 transition-colors">
+            <a
+              href="#contact"
+              className="text-gray-600 hover:text-gray-900 transition-colors"
+            >
               Contact
             </a>
           </nav>
@@ -61,19 +72,34 @@ export function Header() {
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-200">
             <nav className="flex flex-col gap-4">
-              <a href="#solutions" className="text-gray-600 hover:text-gray-900 transition-colors">
+              <a
+                href="#solutions"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
                 Solutions
               </a>
-              <a href="#platform" className="text-gray-600 hover:text-gray-900 transition-colors">
+              <a
+                href="#platform"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
                 Plateforme
               </a>
-              <a href="#about" className="text-gray-600 hover:text-gray-900 transition-colors">
+              <a
+                href="#about"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
                 À propos
               </a>
-              <a href="#news" className="text-gray-600 hover:text-gray-900 transition-colors">
+              <a
+                href="#news"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
                 Actualités
               </a>
-              <a href="#contact" className="text-gray-600 hover:text-gray-900 transition-colors">
+              <a
+                href="#contact"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
+              >
                 Contact
               </a>
               <Link href="/login">
