@@ -9,6 +9,7 @@ import { AIPredictions } from "../dashboard/AIPredictions";
 import { VillagesMap } from "../dashboard/VillagesMap";
 import { Energy } from "./Energy";
 import { Water } from "./Water";
+import { Transactions } from "./Transaction";
 
 interface DashboardProps {
   onLogout?: () => void;
@@ -97,10 +98,14 @@ export function Dashboard({ onLogout }: DashboardProps) {
           {/* Water Tab */}
           {activeTab === "water" && <Water />}
 
+          {/* Transactions Tab */}
+          {activeTab === "transactions" && <Transactions />}
+
           {/* Other tabs content */}
           {activeTab !== "dashboard" &&
             activeTab !== "energy" &&
-            activeTab !== "water" && (
+            activeTab !== "water" &&
+            activeTab !== "transactions" && (
               <div className="bg-white rounded-xl p-12 border border-gray-200 text-center">
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
                   {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
