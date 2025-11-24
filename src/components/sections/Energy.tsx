@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { WeatherService } from "@/services/weatherService";
 import {
   Zap,
   Sun,
@@ -68,6 +69,21 @@ export function Energy() {
   const [productionHistory] = useState(generateProductionHistory());
   const [forecast] = useState(generateForecast());
   const [selling, setSelling] = useState(false);
+  const [weatherData, setWeatherData] = useState<{ today: any; tomorrow: any } | null>(null);
+  const [recommendation, setRecommendation] = useState("");
+
+  useEffect(() => {
+    async function loadWeather() {
+      try {
+        const data = await WeatherService.getForecast();
+        setWeatherData({ today: data.today, tomorrow: data.tomorrow });
+        setRecommendation(WeatherService.getRecommendation('energy', data.today, data.tomorrow));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    loadWeather();
+  }, []);
 
   // Simulation de mise à jour en temps réel
   useEffect(() => {
@@ -108,13 +124,12 @@ export function Energy() {
           </p>
         </div>
         <Badge
-          className={`px-4 py-2 ${
-            systemStatus === "active"
+          className={`px-4 py-2 ${systemStatus === "active"
               ? "bg-green-100 text-green-700 border-green-200"
               : systemStatus === "maintenance"
                 ? "bg-orange-100 text-orange-700 border-orange-200"
                 : "bg-red-100 text-red-700 border-red-200"
-          }`}
+            }`}
         >
           {systemStatus === "active"
             ? "● Système Actif"
@@ -423,16 +438,18 @@ export function Energy() {
               <div className="flex items-center gap-3">
                 <Sun className="text-yellow-500" size={32} />
                 <div>
-                  <p className="text-3xl font-bold text-gray-900">+20%</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {weatherData ? `${weatherData.tomorrow.maxTemp}°C` : "--"}
+                  </p>
                   <p className="text-sm text-gray-600">
-                    d'énergie grâce au soleil
+                    {weatherData ? WeatherService.getWeatherLabel(weatherData.tomorrow.weatherCode) : "Chargement..."}
                   </p>
                 </div>
               </div>
             </div>
             <div className="text-right">
               <p className="text-2xl font-bold text-blue-600">
-                ~{(totalProducedToday * 1.2).toFixed(1)} kWh
+                ~{(totalProducedToday * (weatherData?.tomorrow.maxTemp > 25 ? 1.2 : 0.8)).toFixed(1)} kWh
               </p>
               <p className="text-sm text-gray-600">Production estimée</p>
             </div>
@@ -493,10 +510,7 @@ export function Energy() {
                 Recommandation du système
               </h5>
               <p className="text-sm text-gray-700">
-                Les prévisions indiquent un pic de production mercredi. Nous
-                recommandons de planifier vos activités énergivores ce jour-là
-                ou de vendre l'excédent sur le réseau DePIN pour maximiser vos
-                revenus.
+                {recommendation || "Analyse des données météorologiques en cours..."}
               </p>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { WeatherService } from "@/services/weatherService";
 import {
   Droplet,
   Cloud,
@@ -84,6 +85,21 @@ export function Water() {
   const [distributionHistory] = useState(generateDistributionHistory());
   const [forecast] = useState(generateWaterForecast());
   const [selling, setSelling] = useState(false);
+  const [weatherData, setWeatherData] = useState<{ today: any; tomorrow: any } | null>(null);
+  const [recommendation, setRecommendation] = useState("");
+
+  useEffect(() => {
+    async function loadWeather() {
+      try {
+        const data = await WeatherService.getForecast();
+        setWeatherData({ today: data.today, tomorrow: data.tomorrow });
+        setRecommendation(WeatherService.getRecommendation('water', data.today, data.tomorrow));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    loadWeather();
+  }, []);
 
   // Simulation de mise à jour en temps réel
   useEffect(() => {
@@ -131,13 +147,12 @@ export function Water() {
           </p>
         </div>
         <Badge
-          className={`px-4 py-2 ${
-            systemStatus === "active"
+          className={`px-4 py-2 ${systemStatus === "active"
               ? "bg-blue-100 text-blue-700 border-blue-200"
               : systemStatus === "maintenance"
                 ? "bg-orange-100 text-orange-700 border-orange-200"
                 : "bg-red-100 text-red-700 border-red-200"
-          }`}
+            }`}
         >
           {systemStatus === "active"
             ? "● Système Actif"
@@ -470,16 +485,18 @@ export function Water() {
               <div className="flex items-center gap-3">
                 <Cloud className="text-blue-500" size={32} />
                 <div>
-                  <p className="text-3xl font-bold text-gray-900">+10%</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {weatherData ? `${weatherData.tomorrow.rainSum}mm` : "--"}
+                  </p>
                   <p className="text-sm text-gray-600">
-                    d'eau grâce à la pluie 🌧️
+                    {weatherData ? WeatherService.getWeatherLabel(weatherData.tomorrow.weatherCode) : "Chargement..."}
                   </p>
                 </div>
               </div>
             </div>
             <div className="text-right">
               <p className="text-2xl font-bold text-cyan-600">
-                ~{(currentWater * 1.1).toFixed(0)} L
+                ~{(currentWater * (weatherData?.tomorrow.rainSum > 5 ? 1.5 : 0.9)).toFixed(0)} L
               </p>
               <p className="text-sm text-gray-600">Disponibilité estimée</p>
             </div>
@@ -569,11 +586,7 @@ export function Water() {
                 Recommandation du système
               </h5>
               <p className="text-sm text-gray-700">
-                Les prévisions indiquent des précipitations jeudi et vendredi.
-                Nous recommandons de réduire le pompage ces jours-là pour
-                économiser l'énergie et capitaliser sur l'eau de pluie. Vous
-                pourriez vendre votre surplus actuel avant les pluies pour
-                optimiser vos revenus.
+                {recommendation || "Analyse des données météorologiques en cours..."}
               </p>
             </div>
           </div>

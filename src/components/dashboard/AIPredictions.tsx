@@ -1,20 +1,67 @@
 "use client";
 
-import { Brain, Sun, CloudRain, TrendingUp } from "lucide-react";
+import { Brain, Sun, CloudRain, TrendingUp, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { WeatherService } from "@/services/weatherService";
 
 export function AIPredictions() {
+  const [loading, setLoading] = useState(true);
+  const [weatherData, setWeatherData] = useState<{
+    today: any;
+    tomorrow: any;
+  } | null>(null);
+  const [recommendation, setRecommendation] = useState("");
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const forecast = await WeatherService.getForecast();
+        setWeatherData({
+          today: forecast.today,
+          tomorrow: forecast.tomorrow,
+        });
+        setRecommendation(
+          WeatherService.getRecommendation(
+            "general",
+            forecast.today,
+            forecast.tomorrow
+          )
+        );
+      } catch (error) {
+        console.error("Failed to load weather data", error);
+        setRecommendation("Données indisponibles.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl p-6 border border-gray-200 flex justify-center items-center h-64">
+        <Loader2 className="animate-spin text-purple-600" size={32} />
+      </div>
+    );
+  }
+
   const predictions = [
     {
       icon: Sun,
       title: "Prévision Solaire",
-      prediction: "+20% d'énergie demain",
+      prediction: weatherData
+        ? `${weatherData.today.maxTemp}°C Max aujourd'hui`
+        : "--",
       confidence: "95%",
       color: "yellow",
     },
     {
       icon: CloudRain,
       title: "Prévision Météo",
-      prediction: "Pluie dans 3 jours",
+      prediction: weatherData
+        ? WeatherService.getWeatherLabel(weatherData.today.weatherCode)
+        : "--",
       confidence: "87%",
       color: "blue",
     },
@@ -37,18 +84,15 @@ export function AIPredictions() {
     <div className="bg-white rounded-xl p-6 border border-gray-200">
       <div className="flex items-center gap-2 mb-6">
         <Brain className="text-purple-600" size={24} />
-        <h3 className="text-lg font-semibold text-gray-900">
-          Prévisions IA
-        </h3>
+        <h3 className="text-lg font-semibold text-gray-900">Prévisions IA</h3>
       </div>
 
       <div className="space-y-4">
         {predictions.map((pred, index) => (
           <div
             key={index}
-            className={`p-4 rounded-lg border-2 ${
-              colorClasses[pred.color as keyof typeof colorClasses]
-            }`}
+            className={`p-4 rounded-lg border-2 ${colorClasses[pred.color as keyof typeof colorClasses]
+              }`}
           >
             <div className="flex items-start gap-3">
               <pred.icon size={20} />
@@ -66,8 +110,7 @@ export function AIPredictions() {
 
       <div className="mt-6 p-4 bg-purple-50 border-2 border-purple-200 rounded-lg">
         <p className="text-sm text-purple-900">
-          💡 <strong>Recommandation :</strong> Profitez du pic solaire de demain pour maximiser 
-          la production et stockez l&apos;excédent avant la pluie.
+          💡 <strong>Recommandation :</strong> {recommendation}
         </p>
       </div>
     </div>
