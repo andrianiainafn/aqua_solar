@@ -8,10 +8,15 @@ import {
   ArrowUpRight,
   CheckCircle2,
   Battery,
+  X,
+  Loader2,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
 import { Progress } from "../ui/progress";
+import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
 import {
   LineChart,
@@ -59,7 +64,11 @@ const generateForecast = () => {
   }));
 };
 
+import { useHashConnect } from "@/lib/hooks/useHashConnect";
+import { TopicMessageSubmitTransaction } from "@hashgraph/sdk";
+
 export function Energy() {
+  const { isConnected, connectWallet, sendTransaction, resetConnection } = useHashConnect();
   const [currentEnergy, setCurrentEnergy] = useState(5.2);
   const [totalProducedToday, setTotalProducedToday] = useState(10.8);
   const [systemStatus, setSystemStatus] = useState<
@@ -69,8 +78,20 @@ export function Energy() {
   const [productionHistory] = useState(generateProductionHistory());
   const [forecast] = useState(generateForecast());
   const [selling, setSelling] = useState(false);
+  const [energyToSell, setEnergyToSell] = useState(1);
   const [weatherData, setWeatherData] = useState<{ today: any; tomorrow: any } | null>(null);
   const [recommendation, setRecommendation] = useState("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showFailureModal, setShowFailureModal] = useState(false);
+  const [transactionDetails, setTransactionDetails] = useState<{
+    amount: number;
+    price: number;
+    transactionId?: string;
+    error?: string;
+  } | null>(null);
+
+  // Price per kWh in USD
+  const pricePerKwh = 0.05;
 
   useEffect(() => {
     async function loadWeather() {
@@ -100,22 +121,217 @@ export function Energy() {
   }, [systemStatus]);
 
   const handleSellEnergy = async () => {
+    if (!isConnected) {
+      toast.error("Portefeuille non connecté", {
+        description: "Veuillez connecter votre portefeuille pour vendre de l'énergie.",
+        action: {
+          label: "Connecter",
+          onClick: connectWallet,
+        },
+      });
+      return;
+    }
+
+    if (energyToSell <= 0 || energyToSell > currentEnergy) {
+      toast.error("Quantité invalide", {
+        description: `Veuillez entrer une quantité entre 0.1 et ${currentEnergy.toFixed(1)} kWh`,
+      });
+      return;
+    }
+
     setSelling(true);
 
-    // Simulation de transaction blockchain
-    setTimeout(() => {
-      setCurrentEnergy((prev) => Math.max(0, prev - 1));
-      setSelling(false);
-      toast.success("Transaction réussie !", {
-        description: "Vente de 1 kWh à Village de Kpalimé pour 0.05€",
+    try {
+      // Create HCS transaction to log the sale
+      // Using a public testnet topic for demo purposes
+      const topicId = "0.0.4576384";
+      const totalPrice = energyToSell * pricePerKwh;
+      const message = JSON.stringify({
+        type: "ENERGY_SALE",
+        amount: energyToSell,
+        unit: "kWh",
+        pricePerUnit: pricePerKwh,
+        totalPrice: totalPrice,
+        currency: "USD",
+        timestamp: new Date().toISOString(),
       });
-    }, 1000);
+
+      const transaction = new TopicMessageSubmitTransaction()
+        .setTopicId(topicId)
+        .setMessage(message);
+
+      const result = await sendTransaction(transaction);
+
+      if (result.success) {
+        setCurrentEnergy((prev) => Math.max(0, prev - energyToSell));
+        setTransactionDetails({
+          amount: energyToSell,
+          price: totalPrice,
+          transactionId: result.transactionId,
+        });
+        setShowSuccessModal(true);
+        // Reset the input to 1 after successful sale
+        setEnergyToSell(1);
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error: any) {
+      console.error("Sale failed:", error);
+      setTransactionDetails({
+        amount: energyToSell,
+        price: energyToSell * pricePerKwh,
+        error: error.message || "Une erreur est survenue lors de la vente.",
+      });
+      setShowFailureModal(true);
+    } finally {
+      setSelling(false);
+    }
   };
 
   const energyPercentage = (currentEnergy / 20) * 100;
 
   return (
     <div className="space-y-6">
+      {/* Success Modal */}
+      {showSuccessModal && transactionDetails && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative animate-in fade-in zoom-in duration-300">
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X size={24} />
+            </button>
+
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="text-green-600" size={32} />
+              </div>
+
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                Transaction Réussie !
+              </h3>
+
+              <p className="text-gray-600 mb-6">
+                Votre énergie a été vendue avec succès sur la blockchain Hedera
+              </p>
+
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 mb-6 border border-green-200">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Quantité vendue</span>
+                    <span className="font-bold text-gray-900">
+                      {transactionDetails.amount.toFixed(1)} kWh
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Prix total</span>
+                    <span className="font-bold text-green-600 text-lg">
+                      ${transactionDetails.price.toFixed(2)}
+                    </span>
+                  </div>
+                  {transactionDetails.transactionId && (
+                    <div className="pt-3 border-t border-green-200">
+                      <p className="text-xs text-gray-500 mb-1">ID de transaction</p>
+                      <p className="text-xs font-mono bg-white px-3 py-2 rounded border border-green-200 break-all">
+                        {transactionDetails.transactionId}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <Button
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3"
+              >
+                Parfait !
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Failure Modal */}
+      {showFailureModal && transactionDetails && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative animate-in fade-in zoom-in duration-300">
+            <button
+              onClick={() => setShowFailureModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X size={24} />
+            </button>
+
+            <div className="text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <XCircle className="text-red-600" size={32} />
+              </div>
+
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                Transaction Échouée
+              </h3>
+
+              <p className="text-gray-600 mb-6">
+                Une erreur s'est produite lors de la vente de votre énergie
+              </p>
+
+              <div className="bg-gradient-to-br from-red-50 to-rose-50 rounded-xl p-6 mb-6 border border-red-200">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Quantité tentée</span>
+                    <span className="font-bold text-gray-900">
+                      {transactionDetails.amount.toFixed(1)} kWh
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Prix total</span>
+                    <span className="font-bold text-gray-900">
+                      ${transactionDetails.price.toFixed(2)}
+                    </span>
+                  </div>
+                  {transactionDetails.error && (
+                    <div className="pt-3 border-t border-red-200">
+                      <p className="text-xs text-gray-500 mb-1">Erreur</p>
+                      <p className="text-sm text-red-600 bg-white px-3 py-2 rounded border border-red-200">
+                        {transactionDetails.error}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => setShowFailureModal(false)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Fermer
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowFailureModal(false);
+                    handleSellEnergy();
+                  }}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Réessayer
+                </Button>
+              </div>
+              <div className="mt-4 text-center">
+                <button
+                  onClick={resetConnection}
+                  className="text-xs text-gray-500 hover:text-red-600 underline"
+                >
+                  Problèmes de connexion ? Réinitialiser le portefeuille
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* En-tête de la section */}
       <div className="flex items-center justify-between">
         <div>
@@ -125,10 +341,10 @@ export function Energy() {
         </div>
         <Badge
           className={`px-4 py-2 ${systemStatus === "active"
-              ? "bg-green-100 text-green-700 border-green-200"
-              : systemStatus === "maintenance"
-                ? "bg-orange-100 text-orange-700 border-orange-200"
-                : "bg-red-100 text-red-700 border-red-200"
+            ? "bg-green-100 text-green-700 border-green-200"
+            : systemStatus === "maintenance"
+              ? "bg-orange-100 text-orange-700 border-orange-200"
+              : "bg-red-100 text-red-700 border-red-200"
             }`}
         >
           {systemStatus === "active"
@@ -310,18 +526,28 @@ export function Energy() {
 
               {/* Détails de la vente */}
               <div className="bg-white/10 rounded-lg p-4 mb-6 backdrop-blur-sm">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-blue-100">Quantité</span>
-                  <span className="font-bold">1 kWh</span>
+                <div className="mb-4">
+                  <label className="text-sm text-blue-100 mb-2 block">Quantité (kWh)</label>
+                  <Input
+                    type="number"
+                    min="0.1"
+                    max={currentEnergy}
+                    step="0.1"
+                    value={energyToSell}
+                    onChange={(e) => setEnergyToSell(parseFloat(e.target.value) || 0)}
+                    className="bg-white/20 border-white/30 text-white placeholder:text-blue-200 focus:bg-white/30"
+                    disabled={selling}
+                  />
+                  <p className="text-xs text-blue-200 mt-1">Disponible: {currentEnergy.toFixed(1)} kWh</p>
                 </div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm text-blue-100">Prix unitaire</span>
-                  <span className="font-bold">0.05 €</span>
+                  <span className="font-bold">${pricePerKwh.toFixed(2)}</span>
                 </div>
                 <div className="border-t border-white/20 pt-2 mt-2">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-blue-100">Total</span>
-                    <span className="text-lg font-bold">0.05 €</span>
+                    <span className="text-lg font-bold">${(energyToSell * pricePerKwh).toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -333,15 +559,20 @@ export function Energy() {
 
             <Button
               onClick={handleSellEnergy}
-              disabled={selling || currentEnergy < 1}
+              disabled={selling || currentEnergy < 0.1 || energyToSell <= 0 || energyToSell > currentEnergy}
               className="w-full bg-white text-blue-600 hover:bg-blue-50 font-semibold py-6"
             >
               {selling ? "Transaction en cours..." : "Vendre maintenant"}
             </Button>
 
-            {currentEnergy < 1 && (
+            {currentEnergy < 0.1 && (
               <p className="text-xs text-blue-200 text-center mt-2">
                 Énergie insuffisante pour la vente
+              </p>
+            )}
+            {energyToSell > currentEnergy && currentEnergy >= 0.1 && (
+              <p className="text-xs text-blue-200 text-center mt-2">
+                Quantité supérieure à l'énergie disponible
               </p>
             )}
           </div>

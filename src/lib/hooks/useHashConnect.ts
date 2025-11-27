@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { LedgerId } from "@hashgraph/sdk";
 
-
 type DappMetadata = {
     name: string;
     description: string;
@@ -15,6 +14,8 @@ type SessionData = {
     metadata: any;
     accountIds: string[];
     network: string;
+    topic?: string;
+    pairingString?: string;
 };
 
 type HashConnect = any;
@@ -25,6 +26,12 @@ interface WalletState {
     isInitializing: boolean;
     accountId: string | null;
     error: string | null;
+}
+
+interface TransactionResponse {
+    success: boolean;
+    transactionId?: string;
+    error?: string;
 }
 
 export function useHashConnect() {
@@ -43,6 +50,17 @@ export function useHashConnect() {
     useEffect(() => {
         const initHashConnect = async () => {
             try {
+                // Clean up any stale WalletConnect sessions before initializing
+                // This prevents "No matching key. proposal: XXX" errors
+                console.log("🧹 Cleaning up stale WalletConnect sessions...");
+                Object.keys(localStorage).forEach((key) => {
+                    if (key.startsWith("wc@2:")) {
+                        console.log(`  Removing: ${key}`);
+                        localStorage.removeItem(key);
+                    }
+                });
+                console.log("✅ WalletConnect cleanup complete");
+
                 // Dynamically import HashConnect to avoid Next.js bundling issues
                 const { HashConnect } = await import("hashconnect");
 
@@ -55,7 +73,34 @@ export function useHashConnect() {
                 };
 
                 // HashConnect v3 requires LedgerId, projectId, and metadata in constructor
-                const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "";
+                const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
+
+                if (!projectId) {
+                    console.error("❌ NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID is not set");
+                    throw new Error(
+                        "WalletConnect Project ID is missing. Please add NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID to your .env file. " +
+                        "Get a free project ID from https://cloud.walletconnect.com"
+                    );
+                }
+
+                console.log("🔑 Using WalletConnect Project ID:", projectId.substring(0, 8) + "...");
+
+                // Suppress WalletConnect "No matching key" errors during initialization
+                // These occur when cleaning up stale sessions and are expected
+                const originalConsoleError = console.error;
+                const suppressedErrors = new Set<string>();
+                console.error = (...args: any[]) => {
+                    const message = args.join(' ');
+                    if (message.includes('No matching key. proposal:')) {
+                        if (!suppressedErrors.has(message)) {
+                            suppressedErrors.add(message);
+                            console.log('🔇 Suppressed WalletConnect cleanup error:', message.substring(0, 100));
+                        }
+                        return;
+                    }
+                    originalConsoleError.apply(console, args);
+                };
+
                 const hc = new HashConnect(
                     LedgerId.TESTNET,
                     projectId,
@@ -67,6 +112,9 @@ export function useHashConnect() {
                 await hc.init();
                 setHashconnect(hc);
 
+                // Restore original console.error after initialization
+                console.error = originalConsoleError;
+
                 // Mark as initialized
                 setWalletState((prev) => ({
                     ...prev,
@@ -76,24 +124,39 @@ export function useHashConnect() {
                 console.log("✅ HashConnect initialized successfully");
 
                 // Listen for pairing events
-                hc.pairingEvent.on((data: SessionData) => {
-                    console.log("Pairing event:", data);
+                hc.pairingEvent.on((data: any) => {
+                    console.log("✅ Pairing event received:", data);
+                    console.log("📋 Full pairing data structure:", JSON.stringify(data, null, 2));
+
+                    // Validate that we have the required data
+                    // Note: Pairing events may fire multiple times during the connection process
+                    // We only want to process complete pairing events
+                    if (!data.accountIds || data.accountIds.length === 0) {
+                        console.log("⏳ Pairing event incomplete (no accountIds), waiting for complete event...");
+                        return;
+                    }
+
+                    if (!data.topic && !data.pairingString) {
+                        console.log("⏳ Pairing event incomplete (no topic/pairingString), waiting for complete event...");
+                        return;
+                    }
+
+                    // Store the complete session data including topic
                     setSessionData(data);
 
-                    if (data.accountIds && data.accountIds.length > 0) {
-                        setWalletState({
-                            isConnected: true,
-                            isConnecting: false,
-                            isInitializing: false,
-                            accountId: data.accountIds[0],
-                            error: null,
-                        });
-                        localStorage.setItem("hashconnectSession", JSON.stringify(data));
-                    }
+                    setWalletState({
+                        isConnected: true,
+                        isConnecting: false,
+                        isInitializing: false,
+                        accountId: data.accountIds[0],
+                        error: null,
+                    });
+                    localStorage.setItem("hashconnectSession", JSON.stringify(data));
+                    console.log("💾 Session saved to localStorage");
                 });
 
                 // Listen for connection status changes
-                hc.connectionStatusChangeEvent.on((state) => {
+                hc.connectionStatusChangeEvent.on((state: any) => {
                     console.log("Connection status changed:", state);
 
                     if (state === "Connected" || state === "Paired") {
@@ -110,6 +173,8 @@ export function useHashConnect() {
                             accountId: null,
                             error: null,
                         });
+                        setSessionData(null);
+                        localStorage.removeItem("hashconnectSession");
                     }
                 });
 
@@ -131,10 +196,19 @@ export function useHashConnect() {
                 const savedSession = localStorage.getItem("hashconnectSession");
                 if (savedSession) {
                     try {
-                        const parsed: SessionData = JSON.parse(savedSession);
-                        setSessionData(parsed);
+                        const parsed = JSON.parse(savedSession);
+                        console.log("📂 Attempting to restore session:", parsed);
 
-                        if (parsed.accountIds && parsed.accountIds.length > 0) {
+                        // Validate that the session has required fields
+                        if (!parsed.accountIds || parsed.accountIds.length === 0) {
+                            console.warn("⚠️ Saved session missing accountIds, clearing...");
+                            localStorage.removeItem("hashconnectSession");
+                        } else if (!parsed.topic && !parsed.pairingString) {
+                            console.warn("⚠️ Saved session missing topic/pairingString, clearing...");
+                            localStorage.removeItem("hashconnectSession");
+                        } else {
+                            // Session is valid, restore it
+                            setSessionData(parsed);
                             setWalletState({
                                 isConnected: true,
                                 isConnecting: false,
@@ -142,6 +216,7 @@ export function useHashConnect() {
                                 accountId: parsed.accountIds[0],
                                 error: null,
                             });
+                            console.log("✅ Session restored successfully");
                         }
                     } catch (err) {
                         console.error("Failed to restore session:", err);
@@ -163,7 +238,6 @@ export function useHashConnect() {
 
     // Connect wallet - opens the pairing modal
     const connectWallet = useCallback(async () => {
-        // If still initializing, wait a bit and retry
         if (!hashconnect) {
             if (walletState.isInitializing) {
                 setWalletState((prev) => ({
@@ -171,14 +245,12 @@ export function useHashConnect() {
                     error: "Initializing wallet connection, please wait...",
                 }));
 
-                // Wait for initialization (max 5 seconds)
                 let attempts = 0;
                 const maxAttempts = 10;
                 const checkInterval = setInterval(() => {
                     attempts++;
                     if (hashconnect) {
                         clearInterval(checkInterval);
-                        // Retry connection
                         connectWallet();
                     } else if (attempts >= maxAttempts) {
                         clearInterval(checkInterval);
@@ -205,10 +277,7 @@ export function useHashConnect() {
         }));
 
         try {
-            // Open the WalletConnect pairing modal
             await hashconnect.openPairingModal();
-
-            // The actual connection will be handled by the pairingEvent listener
         } catch (error: any) {
             console.error("Failed to connect wallet:", error);
             setWalletState((prev) => ({
@@ -240,9 +309,135 @@ export function useHashConnect() {
         }
     }, [hashconnect]);
 
+    // Send transaction
+    const sendTransaction = useCallback(async (transaction: any): Promise<TransactionResponse> => {
+        if (!hashconnect || !sessionData) {
+            return {
+                success: false,
+                error: "Wallet not connected"
+            };
+        }
+
+        try {
+            console.log("📤 Preparing transaction...");
+            console.log("Session data:", sessionData);
+
+            // Get the pairing topic from session data
+            const topic = sessionData.topic || sessionData.pairingString;
+            if (!topic) {
+                console.error("❌ No topic found. Session data:", sessionData);
+                throw new Error("No pairing topic found in session data. Please reconnect your wallet.");
+            }
+            console.log("✅ Using topic:", topic);
+
+            // Set transaction nodes - required before freezing
+            transaction.setNodeAccountIds([
+                "0.0.3",
+                "0.0.4",
+                "0.0.5"
+            ]);
+            console.log("✅ Transaction nodes set");
+
+            // Freeze the transaction
+            const frozenTransaction = transaction.freeze();
+            console.log("✅ Transaction frozen");
+
+            // Convert to bytes
+            const transactionBytes = frozenTransaction.toBytes();
+            console.log("✅ Transaction converted to bytes");
+
+            // Send to wallet
+            console.log("📤 Sending transaction to wallet...");
+
+            // Convert Uint8Array to number[] for better compatibility
+            const transactionBytesArray = Array.from(transactionBytes);
+
+            const response = await hashconnect.sendTransaction(topic, {
+                topic: topic,
+                byteArray: transactionBytesArray,
+                metadata: {
+                    accountToSign: sessionData.accountIds[0],
+                    returnTransaction: false,
+                }
+            });
+
+            console.log("📥 Received response from wallet:", response);
+
+            if (response.success === false) {
+                throw new Error(response.error || "Transaction rejected by wallet");
+            }
+
+            let transactionId = "Unknown";
+            if (response.receipt?.transactionId) {
+                transactionId = response.receipt.transactionId.toString();
+            } else if (response.response?.transactionId) {
+                transactionId = response.response.transactionId.toString();
+            } else if (response.transactionId) {
+                transactionId = response.transactionId.toString();
+            }
+
+            console.log("✅ Transaction successful! ID:", transactionId);
+
+            return {
+                success: true,
+                transactionId: transactionId
+            };
+        } catch (error: any) {
+            console.error("❌ Transaction failed:", error);
+
+            // Check if it's a WalletConnect error
+            if (error?.message?.includes("Child.LOG") || error?.message?.includes("Child.error")) {
+                return {
+                    success: false,
+                    error: "Wallet connection error. Please reconnect your wallet."
+                };
+            }
+
+            return {
+                success: false,
+                error: error.message || "Transaction failed"
+            };
+        }
+    }, [hashconnect, sessionData]);
+
+    // Reset connection - clears all sessions and local storage
+    const resetConnection = useCallback(async () => {
+        if (hashconnect) {
+            try {
+                await hashconnect.disconnect();
+            } catch (e) {
+                console.warn("Failed to disconnect during reset:", e);
+            }
+        }
+
+        // Clear HashConnect session
+        localStorage.removeItem("hashconnectSession");
+        setSessionData(null);
+
+        // Clear WalletConnect v2 data
+        Object.keys(localStorage).forEach((key) => {
+            if (key.startsWith("wc@2:")) {
+                localStorage.removeItem(key);
+            }
+        });
+
+        setWalletState({
+            isConnected: false,
+            isConnecting: false,
+            isInitializing: false,
+            accountId: null,
+            error: null,
+        });
+
+        console.log("🧹 Connection reset complete. Reloading page...");
+        window.location.reload();
+    }, [hashconnect]);
+
     return {
         ...walletState,
         connectWallet,
         disconnectWallet,
+        sendTransaction,
+        resetConnection,
     };
 }
