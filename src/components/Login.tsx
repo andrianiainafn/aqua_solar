@@ -1,20 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Checkbox } from "./ui/checkbox";
-import { Lock, Mail, Zap, ArrowLeft } from "lucide-react";
+import { Lock, Mail, Zap, ArrowLeft, Wallet } from "lucide-react";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Logo } from "./Logo";
+import { useHashConnect } from "../lib/hooks/useHashConnect";
 
 export function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
+
+  // HashConnect wallet integration
+  const { isConnected, isConnecting, isInitializing, accountId, error, connectWallet, disconnectWallet } = useHashConnect();
+
+  // Redirect to dashboard when wallet is connected
+  useEffect(() => {
+    if (isConnected && accountId) {
+      console.log("Wallet connected:", accountId);
+      router.push("/dashboard");
+    }
+  }, [isConnected, accountId, router]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,6 +34,10 @@ export function Login() {
 
     // Redirection vers le dashboard après connexion
     router.push("/dashboard");
+  };
+
+  const handleWalletConnect = async () => {
+    await connectWallet();
   };
 
   return (
@@ -121,6 +137,61 @@ export function Login() {
               Se connecter
             </Button>
           </form>
+
+          {/* Divider */}
+          <div className="relative my-8">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-gray-50 text-gray-500">OU</span>
+            </div>
+          </div>
+
+          {/* Wallet Connection */}
+          <div className="space-y-4">
+            {!isConnected ? (
+              <Button
+                type="button"
+                onClick={handleWalletConnect}
+                disabled={isConnecting}
+                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+                size="lg"
+              >
+                <Wallet className="mr-2" size={20} />
+                {isInitializing ? "Initializing..." :
+                  isConnecting ? "Connecting..." :
+                    isConnected ? "Connected" : "Connect Wallet"}
+              </Button>
+            ) : (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-green-900">Wallet connecté</p>
+                    <p className="text-xs text-green-700 mt-1 font-mono">{accountId}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={disconnectWallet}
+                    variant="outline"
+                    size="sm"
+                    className="text-green-700 border-green-300 hover:bg-green-100"
+                  >
+                    Déconnecter
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-800">{error}</p>
+                <p className="text-xs text-red-600 mt-1">
+                  Assurez-vous d&apos;avoir installé HashPack ou Blade Wallet.
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* Sign Up Link */}
           <p className="mt-8 text-center text-gray-600">
