@@ -148,10 +148,10 @@ export function Water() {
         </div>
         <Badge
           className={`px-4 py-2 ${systemStatus === "active"
-              ? "bg-blue-100 text-blue-700 border-blue-200"
-              : systemStatus === "maintenance"
-                ? "bg-orange-100 text-orange-700 border-orange-200"
-                : "bg-red-100 text-red-700 border-red-200"
+            ? "bg-blue-100 text-blue-700 border-blue-200"
+            : systemStatus === "maintenance"
+              ? "bg-orange-100 text-orange-700 border-orange-200"
+              : "bg-red-100 text-red-700 border-red-200"
             }`}
         >
           {systemStatus === "active"

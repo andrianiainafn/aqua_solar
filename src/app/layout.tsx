@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import ReactQueryProvider from "@/utils/ReactQueryProvider";
+import { Toaster } from "@/components/ui/sonner";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -26,6 +27,7 @@ export default function RootLayout({
       >
         <ReactQueryProvider>
           {children}
+          <Toaster />
         </ReactQueryProvider>
       </body>
     </html>
