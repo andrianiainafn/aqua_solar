@@ -23,8 +23,11 @@ export function Login() {
   // Redirect to dashboard when wallet is connected
   useEffect(() => {
     if (isConnected && accountId) {
-      console.log("Wallet connected:", accountId);
-      router.push("/dashboard");
+      console.log("✅ Wallet connected successfully:", accountId);
+      console.log("🔄 Redirecting to dashboard...");
+
+
+      router.replace("/dashboard");
     }
   }, [isConnected, accountId, router]);
 
@@ -32,8 +35,9 @@ export function Login() {
     e.preventDefault();
     console.log("Login attempt:", { email, password });
 
-    // Redirection vers le dashboard après connexion
-    router.push("/dashboard");
+    // Traditional login is disabled - wallet connection is required
+    // This form is kept for future email/password authentication
+    console.log("⚠️ Traditional login not implemented. Please use wallet connection.");
   };
 
   const handleWalletConnect = async () => {

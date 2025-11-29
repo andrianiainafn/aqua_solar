@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "@/lib/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
 interface ProtectedRouteProps {
@@ -14,12 +14,21 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     const router = useRouter();
 
     useEffect(() => {
+        console.log(" ProtectedRoute check:", {
+            isLoading,
+            isAuthenticated,
+            accountId,
+            shouldRedirect: !isLoading && !isAuthenticated
+        });
+
         // Only redirect if we're done loading and not authenticated
         if (!isLoading && !isAuthenticated) {
-            console.log("🔒 Access denied: No wallet connected. Redirecting to login...");
-            router.push("/login");
+            console.log(" Access denied: No wallet connected. Redirecting to login...");
+            router.replace("/login");
+        } else if (!isLoading && isAuthenticated) {
+            console.log("✅ Access granted: Wallet connected -", accountId);
         }
-    }, [isAuthenticated, isLoading, router]);
+    }, [isAuthenticated, isLoading, accountId, router]);
 
     // Show loading state while checking authentication
     if (isLoading) {

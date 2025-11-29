@@ -3,6 +3,7 @@ import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import ReactQueryProvider from "@/utils/ReactQueryProvider";
 import { AuthProvider } from "@/lib/contexts/AuthContext";
+import "@/lib/utils/suppressAttestationErrors";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",

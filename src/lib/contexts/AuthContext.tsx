@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, ReactNode } from "react";
+import { createContext, useContext, useEffect, ReactNode } from "react";
 import { useHashConnect } from "../hooks/useHashConnect";
 
 interface AuthContextType {
@@ -29,6 +29,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sendTransaction: hashConnect.sendTransaction,
         resetConnection: hashConnect.resetConnection,
     };
+
+    // Debug logging for authentication state changes
+    useEffect(() => {
+        console.log("🔐 AuthContext state:", {
+            isAuthenticated: value.isAuthenticated,
+            isLoading: value.isLoading,
+            accountId: value.accountId,
+            isConnected: hashConnect.isConnected,
+            isInitializing: hashConnect.isInitializing,
+            isConnecting: hashConnect.isConnecting
+        });
+    }, [value.isAuthenticated, value.isLoading, value.accountId, hashConnect.isConnected, hashConnect.isInitializing, hashConnect.isConnecting]);
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
