@@ -1,69 +1,198 @@
-# Aqua Solar - Blockchain Energy Platform
+# HelioSol Flow - DePIN Platform for Solar Micro-Grids and Water Pumps
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+A decentralized physical infrastructure network (DePIN) platform that enables African communities to manage, monitor, and trade solar energy and water resources through peer-to-peer transactions secured by blockchain technology.
 
-## Environment Setup
+## 🌍 The Problem
 
-Before running the application, you need to set up your environment variables:
+**Critical shortages in Africa**: Over 60% of the population lacks reliable access to electricity, and nearly 30% lack access to clean water. This creates significant challenges for agriculture, healthcare, and education in rural communities.
 
-### 1. Copy the example environment file:
-```bash
-cp .env.example .env
+**Failing centralized systems**: Traditional electrical and water networks are expensive, unstable, and inaccessible in rural areas.
+
+**Climate change impact**: Droughts and floods exacerbate resource shortages, making sustainable solutions more urgent than ever.
+
+## 💡 Our Solution
+
+**HelioSol Flow** is an innovative DePIN platform that addresses water and electricity shortages in Africa through a decentralized, community-driven approach. The platform enables:
+
+- **Solar Micro-Grids**: Community-managed solar energy systems that generate electricity locally
+- **Water Pump Systems**: Connected water pumps powered by solar energy for reliable water access
+- **Peer-to-Peer Trading**: Communities can sell excess energy (kWh) and water (liters) to neighboring villages
+- **AI-Powered Optimization**: Predictive intelligence analyzes weather patterns and usage habits to optimize resource management, especially for irrigation during dry seasons
+- **Blockchain Security**: Hedera blockchain ensures secure, transparent transactions for energy and water trading
+
+## 🛠️ Tech Stack
+
+- **Frontend/Backend**: [Next.js](https://nextjs.org) - React framework with server-side rendering
+- **Database**: MySQL - Relational database for storing user data, projects, systems, and readings
+- **ORM**: Prisma - Type-safe database client
+- **Blockchain**: Hedera - For secure P2P transactions (future integration)
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18+ installed
+- MySQL database server running
+- npm, yarn, pnpm, or bun package manager
+
+### Installation Steps
+
+1. **Clone the repository**:
+   ```bash
+   git clone <repository-url>
+   cd aqua_solar
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   npm install
+   # or
+   yarn install
+   # or
+   pnpm install
+   ```
+
+3. **Set up environment variables**:
+   
+   Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Configure your `.env` file with the following variables:
+   ```env
+   # Database
+   DATABASE_URL="mysql://user:password@localhost:3306/heliosol_flow"
+   
+   # Hedera Testnet Credentials
+   # Get these from: https://portal.hedera.com/register
+   OPERATOR_ID="0.0.6921835"
+   OPERATOR_KEY="0x3d7febfee802255e53d071bf7290a31ab564769cdab9d1f4ed79e96aeff9e197"
+   
+   # WalletConnect Project ID
+   # Get your Project ID from: https://cloud.walletconnect.com
+   NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID="your_project_id_here"
+   ```
+
+4. **Set up the database**:
+   
+   Create a MySQL database:
+   ```sql
+   CREATE DATABASE heliosol_flow;
+   ```
+   
+   Run Prisma migrations:
+   ```bash
+   npx prisma migrate dev
+   ```
+   
+   (Optional) Generate Prisma Client:
+   ```bash
+   npx prisma generate
+   ```
+
+5. **Run the development server**:
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   # or
+   pnpm dev
+   # or
+   bun dev
+   ```
+
+6. **Open your browser**:
+   
+   Navigate to [http://localhost:3000](http://localhost:3000) to see the application.
+
+## 📱 Features
+
+- **Real-Time Monitoring**: Track solar energy production and water pump output in real-time
+- **Community Dashboard**: View production levels, consumption, and available surplus
+- **P2P Trading Interface**: Simple interface to sell excess energy (kWh) and water (liters) to other communities
+- **AI Forecasting**: Predictive analytics for energy and water production based on weather data
+- **Resource Management**: Optimize irrigation and energy distribution using AI recommendations
+- **Secure Transactions**: Blockchain-backed transactions for transparent and secure trading
+
+## 📁 Project Structure
+
+```
+aqua_solar/
+├── prisma/
+│   └── schema.prisma          # Database schema
+├── src/
+│   ├── app/                   # Next.js app directory
+│   └── lib/
+│       └── prisma.ts          # Prisma client instance
+├── .env.example               # Example environment variables
+└── README.md                  # This file
 ```
 
-### 2. Get a WalletConnect Project ID (Required):
-- Visit [WalletConnect Cloud](https://cloud.walletconnect.com)
-- Sign up for a free account
-- Create a new project
-- Copy your Project ID
-- Add it to your `.env` file:
-  ```bash
-  NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID="your_project_id_here"
-  ```
+## 🗄️ Database Schema
 
-### 3. Hedera Testnet Credentials (Optional for development):
-- The example credentials are already provided in `.env.example`
-- For production, get your own from [Hedera Portal](https://portal.hedera.com/register)
+The application uses the following main models:
 
-## Getting Started
+- **User**: Community members and administrators
+- **Project**: Solar and water infrastructure projects
+- **SolarSystem**: Individual solar panel systems with capacity tracking
+- **Reading**: Real-time readings of power output, water volume, and temperature
 
-First, run the development server:
+## 🔧 Development
 
+### Database Management
+
+View your database with Prisma Studio:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npx prisma studio
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Reset the database (development only):
+```bash
+npx prisma migrate reset
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Code Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Edit pages in `src/app/`
+- Database models are defined in `prisma/schema.prisma`
+- Prisma client is initialized in `src/lib/prisma.ts`
 
-## Features
+## 🚢 Deployment
 
-- **Energy Management**: Track and manage solar energy production in real-time
-- **Blockchain Integration**: Secure energy transactions using Hedera Consensus Service
-- **Wallet Connection**: Connect your Hedera wallet using HashConnect
-- **Energy Trading**: Sell surplus energy to other users on the network
-- **AI Forecasting**: Get AI-powered predictions for energy production
+### Deploy on Vercel
 
-## Learn More
+The easiest way to deploy your Next.js app is using the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme):
 
-To learn more about Next.js, take a look at the following resources:
+1. Push your code to GitHub
+2. Import your repository on Vercel
+3. Configure your environment variables
+4. Deploy!
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+For more details, check out the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📊 Pitch Deck
 
-## Deploy on Vercel
+View our presentation: [HelioSol Flow Pitch Deck](https://docs.google.com/presentation/d/1A7zceBeRgXXzu43x8Fxa5xCwMAV2gLCI/edit?usp=sharing&ouid=117390220751267108923&rtpof=true&sd=true)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🎓 Certifications
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **[Hedera Developer Certification Course](https://hashgraphdev.com/courses/hashgraph-developer-course)** - Comprehensive introduction to Hedera development and Web3 technologies
+
+## 📚 Learn More
+
+- [Next.js Documentation](https://nextjs.org/docs) - Learn about Next.js features and API
+- [Prisma Documentation](https://www.prisma.io/docs) - Learn about Prisma ORM
+- [MySQL Documentation](https://dev.mysql.com/doc/) - MySQL database reference
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📄 License
+
+This project is part of a hackathon submission.
+
+---
+
+**HelioSol Flow** - Empowering African communities through decentralized energy and water infrastructure.
