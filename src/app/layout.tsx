@@ -28,7 +28,9 @@ export default function RootLayout({
         className={`${spaceGrotesk.className} antialiased`}
       >
         <ReactQueryProvider>
-          {children}
+          <AuthProvider>
+            {children}
+          </AuthProvider>
           <Toaster />
         </ReactQueryProvider>
       </body>

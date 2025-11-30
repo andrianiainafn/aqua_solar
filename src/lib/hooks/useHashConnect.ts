@@ -129,20 +129,37 @@ export function useHashConnect() {
                     console.log("📋 Full pairing data structure:", JSON.stringify(data, null, 2));
 
                     // Validate that we have the required data
-                    // Note: Pairing events may fire multiple times during the connection process
-                    // We only want to process complete pairing events
                     if (!data.accountIds || data.accountIds.length === 0) {
                         console.log("⏳ Pairing event incomplete (no accountIds), waiting for complete event...");
                         return;
                     }
 
-                    if (!data.topic && !data.pairingString) {
-                        console.log("⏳ Pairing event incomplete (no topic/pairingString), waiting for complete event...");
-                        return;
+                    // Accept pairing with accountIds - topic will be available later for transactions
+                    console.log("✅ Valid pairing received with accountId:", data.accountIds[0]);
+
+                    // Try to get topic immediately from the pairing data or WalletConnect client
+                    let topic = data.topic || data.pairingString;
+
+                    if (!topic) {
+                        console.log("⚠️ Topic not in pairing data, attempting to retrieve from WalletConnect client...");
+                        try {
+                            const wcClient = (hc as any).walletConnectClient;
+                            if (wcClient && wcClient.session) {
+                                const sessions = Array.from(wcClient.session.values());
+                                if (sessions.length > 0) {
+                                    const latestSession = sessions[sessions.length - 1] as any;
+                                    topic = latestSession.topic;
+                                    console.log("✅ Retrieved topic from WalletConnect session:", topic);
+                                }
+                            }
+                        } catch (e) {
+                            console.warn("⚠️ Could not retrieve topic from WalletConnect client:", e);
+                        }
                     }
 
-                    // Store the complete session data including topic
-                    setSessionData(data);
+                    // Store the session data with topic if available
+                    const sessionDataWithTopic = { ...data, topic };
+                    setSessionData(sessionDataWithTopic);
 
                     setWalletState({
                         isConnected: true,
@@ -151,8 +168,8 @@ export function useHashConnect() {
                         accountId: data.accountIds[0],
                         error: null,
                     });
-                    localStorage.setItem("hashconnectSession", JSON.stringify(data));
-                    console.log("💾 Session saved to localStorage");
+                    localStorage.setItem("hashconnectSession", JSON.stringify(sessionDataWithTopic));
+                    console.log("💾 Session saved to localStorage with accountId:", data.accountIds[0], "and topic:", topic ? "✅" : "❌");
                 });
 
                 // Listen for connection status changes
@@ -203,11 +220,8 @@ export function useHashConnect() {
                         if (!parsed.accountIds || parsed.accountIds.length === 0) {
                             console.warn("⚠️ Saved session missing accountIds, clearing...");
                             localStorage.removeItem("hashconnectSession");
-                        } else if (!parsed.topic && !parsed.pairingString) {
-                            console.warn("⚠️ Saved session missing topic/pairingString, clearing...");
-                            localStorage.removeItem("hashconnectSession");
                         } else {
-                            // Session is valid, restore it
+                            // Session is valid if it has accountIds - topic is not required
                             setSessionData(parsed);
                             setWalletState({
                                 isConnected: true,
@@ -216,7 +230,7 @@ export function useHashConnect() {
                                 accountId: parsed.accountIds[0],
                                 error: null,
                             });
-                            console.log("✅ Session restored successfully");
+                            console.log("✅ Session restored successfully with accountId:", parsed.accountIds[0]);
                         }
                     } catch (err) {
                         console.error("Failed to restore session:", err);
@@ -289,6 +303,55 @@ export function useHashConnect() {
         }
     }, [hashconnect, walletState.isInitializing]);
 
+    // Helper function to get the pairing topic
+    const getTopic = useCallback(async (): Promise<string | null> => {
+        if (!hashconnect || !sessionData) {
+            console.error("❌ Cannot get topic: hashconnect or sessionData is null");
+            return null;
+        }
+
+        // Try to get topic from session data first
+        let topic: string | undefined = sessionData.topic || sessionData.pairingString;
+
+        if (topic) {
+            console.log("✅ Topic found in session data:", topic);
+            return topic;
+        }
+
+        // If not in session data, try to get it from the HashConnect instance
+        console.log("⚠️ Topic not in session data, retrieving from HashConnect instance...");
+
+        try {
+            // Access the internal WalletConnect client to get active sessions
+            const wcClient = (hashconnect as any).walletConnectClient;
+
+            if (wcClient && wcClient.session) {
+                const sessions = Array.from(wcClient.session.values());
+                console.log("📋 Found WalletConnect sessions:", sessions.length);
+
+                if (sessions.length > 0) {
+                    // Use the most recent session
+                    const latestSession = sessions[sessions.length - 1] as any;
+                    topic = latestSession.topic;
+                    console.log("✅ Retrieved topic from active session:", topic);
+
+                    // Update session data with the topic for future use
+                    const updatedSessionData = { ...sessionData, topic };
+                    setSessionData(updatedSessionData);
+                    localStorage.setItem("hashconnectSession", JSON.stringify(updatedSessionData));
+                    console.log("💾 Updated session data with topic");
+
+                    return topic ?? null;
+                }
+            }
+        } catch (e) {
+            console.warn("⚠️ Could not retrieve topic from HashConnect instance:", e);
+        }
+
+        console.error("❌ No topic found after all attempts");
+        return null;
+    }, [hashconnect, sessionData]);
+
     // Disconnect wallet
     const disconnectWallet = useCallback(async () => {
         if (hashconnect) {
@@ -322,12 +385,15 @@ export function useHashConnect() {
             console.log("📤 Preparing transaction...");
             console.log("Session data:", sessionData);
 
-            // Get the pairing topic from session data
-            const topic = sessionData.topic || sessionData.pairingString;
+            // Use the helper function to get the topic
+            const topic = await getTopic();
+
             if (!topic) {
-                console.error("❌ No topic found. Session data:", sessionData);
-                throw new Error("No pairing topic found in session data. Please reconnect your wallet.");
+                console.error("❌ No topic found");
+                console.error("Session data:", JSON.stringify(sessionData, null, 2));
+                throw new Error("No pairing topic found. Please disconnect and reconnect your wallet.");
             }
+
             console.log("✅ Using topic:", topic);
 
             // Set transaction nodes - required before freezing
@@ -398,7 +464,7 @@ export function useHashConnect() {
                 error: error.message || "Transaction failed"
             };
         }
-    }, [hashconnect, sessionData]);
+    }, [hashconnect, sessionData, getTopic]);
 
     // Reset connection - clears all sessions and local storage
     const resetConnection = useCallback(async () => {
