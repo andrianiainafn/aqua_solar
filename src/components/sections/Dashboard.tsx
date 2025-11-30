@@ -11,6 +11,8 @@ import { Energy } from "./Energy";
 import { Water } from "./Water";
 import { Transactions } from "./Transaction";
 
+import { useHashConnect } from "../../lib/hooks/useHashConnect";
+
 interface DashboardProps {
   onLogout?: () => void;
 }
@@ -18,6 +20,7 @@ interface DashboardProps {
 export function Dashboard({ onLogout }: DashboardProps) {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [currentTime, setCurrentTime] = useState("");
+  const { accountId, walletName } = useHashConnect();
 
   useEffect(() => {
     // Mettre à jour l'heure côté client pour éviter les problèmes d'hydratation
@@ -55,13 +58,21 @@ export function Dashboard({ onLogout }: DashboardProps) {
             </div>
             <div className="flex items-center gap-4">
               <div className="text-right">
-                <p className="text-sm text-gray-600">Dernière mise à jour</p>
+                <p className="text-sm text-gray-600">
+                  {accountId ? "Portefeuille" : "Dernière mise à jour"}
+                </p>
                 <p className="text-sm font-semibold text-gray-900">
-                  {currentTime || "--:--:--"}
+                  {accountId ? (
+                    <span>
+                      {accountId} <span className="text-gray-500 font-normal">({walletName || "Wallet"})</span>
+                    </span>
+                  ) : (
+                    currentTime || "--:--:--"
+                  )}
                 </p>
               </div>
               <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-                A
+                {accountId ? accountId.slice(0, 1).toUpperCase() : "A"}
               </div>
             </div>
           </div>

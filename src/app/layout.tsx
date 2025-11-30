@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import ReactQueryProvider from "@/utils/ReactQueryProvider";
+import { AuthProvider } from "@/lib/contexts/AuthContext";
+import "@/lib/utils/suppressAttestationErrors";
 import { Toaster } from "@/components/ui/sonner";
 
 const spaceGrotesk = Space_Grotesk({
