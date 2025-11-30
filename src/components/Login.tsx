@@ -1,11 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { Checkbox } from "./ui/checkbox";
-import { Lock, Mail, Zap, ArrowLeft, Wallet } from "lucide-react";
+import { ArrowLeft, Wallet } from "lucide-react";
 import { ImageWithFallback } from "../figma/ImageWithFallback";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,8 +10,6 @@ import { Logo } from "./Logo";
 import { useHashConnect } from "../lib/hooks/useHashConnect";
 
 export function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const router = useRouter();
 
   // HashConnect wallet integration
@@ -25,20 +20,9 @@ export function Login() {
     if (isConnected && accountId) {
       console.log("✅ Wallet connected successfully:", accountId);
       console.log("🔄 Redirecting to dashboard...");
-
-
       router.replace("/dashboard");
     }
   }, [isConnected, accountId, router]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Login attempt:", { email, password });
-
-    // Traditional login is disabled - wallet connection is required
-    // This form is kept for future email/password authentication
-    console.log("⚠️ Traditional login not implemented. Please use wallet connection.");
-  };
 
   const handleWalletConnect = async () => {
     await connectWallet();
@@ -46,7 +30,7 @@ export function Login() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Side - Form */}
+      {/* Left Side - Wallet Connection */}
       <div className="flex-1 flex items-center justify-center p-8 bg-gray-50">
         <div className="w-full max-w-md">
           {/* Back to Home Link */}
@@ -63,93 +47,7 @@ export function Login() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-gray-900 mb-2 text-4xl font-bold">Bienvenue</h1>
-            <p className="text-gray-600">Connectez-vous à votre espace</p>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email Field */}
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-700">
-                Adresse email
-              </Label>
-              <div className="relative">
-                <Mail
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  size={20}
-                />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="vous@exemple.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Password Field */}
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-gray-700">
-                Mot de passe
-              </Label>
-              <div className="relative">
-                <Lock
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  size={20}
-                />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Checkbox id="remember" />
-                <label
-                  htmlFor="remember"
-                  className="text-sm text-gray-600 cursor-pointer"
-                >
-                  Se souvenir de moi
-                </label>
-              </div>
-              <a
-                href="#"
-                className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
-              >
-                Mot de passe oublié ?
-              </a>
-            </div>
-
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-              size="lg"
-            >
-              <Zap className="mr-2" size={20} />
-              Se connecter
-            </Button>
-          </form>
-
-          {/* Divider */}
-          <div className="relative my-8">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-gray-50 text-gray-500">OU</span>
-            </div>
+            <p className="text-gray-600">Connectez votre wallet pour accéder à votre espace</p>
           </div>
 
           {/* Wallet Connection */}
@@ -197,16 +95,15 @@ export function Login() {
             )}
           </div>
 
-          {/* Sign Up Link */}
-          <p className="mt-8 text-center text-gray-600">
-            Vous n&apos;avez pas de compte ?{" "}
-            <a
-              href="#"
-              className="text-blue-600 hover:text-blue-700 font-semibold transition-colors"
-            >
-              Créer un compte
-            </a>
-          </p>
+          {/* Info Text */}
+          <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-900 font-medium mb-2">
+              🔐 Authentification sécurisée par Blockchain
+            </p>
+            <p className="text-xs text-blue-700">
+              Utilisez votre wallet Hedera (HashPack ou Blade) pour vous connecter de manière sécurisée à la plateforme Aqua Solar.
+            </p>
+          </div>
         </div>
       </div>
 

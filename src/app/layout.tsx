@@ -4,6 +4,7 @@ import "./globals.css";
 import ReactQueryProvider from "@/utils/ReactQueryProvider";
 import { AuthProvider } from "@/lib/contexts/AuthContext";
 import "@/lib/utils/suppressAttestationErrors";
+import { Toaster } from "@/components/ui/sonner";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -30,6 +31,7 @@ export default function RootLayout({
           <AuthProvider>
             {children}
           </AuthProvider>
+          <Toaster />
         </ReactQueryProvider>
       </body>
     </html>
