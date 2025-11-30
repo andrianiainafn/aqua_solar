@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { LedgerId } from "@hashgraph/sdk";
+import { LedgerId, TransactionId, AccountId } from "@hashgraph/sdk";
 
 type DappMetadata = {
     name: string;
@@ -75,6 +75,8 @@ export function useHashConnect() {
                 // HashConnect v3 requires LedgerId, projectId, and metadata in constructor
                 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
 
+                console.log("projectId", projectId);
+
                 if (!projectId) {
                     console.error("❌ NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID is not set");
                     throw new Error(
@@ -108,21 +110,6 @@ export function useHashConnect() {
                     true // debug mode
                 );
 
-                // Initialize
-                await hc.init();
-                setHashconnect(hc);
-
-                // Restore original console.error after initialization
-                console.error = originalConsoleError;
-
-                // Mark as initialized
-                setWalletState((prev) => ({
-                    ...prev,
-                    isInitializing: false,
-                }));
-
-                console.log("✅ HashConnect initialized successfully");
-
                 // Listen for pairing events
                 hc.pairingEvent.on((data: any) => {
                     console.log("✅ Pairing event received:", data);
@@ -140,16 +127,31 @@ export function useHashConnect() {
                     // Try to get topic immediately from the pairing data or WalletConnect client
                     let topic = data.topic || data.pairingString;
 
+                    console.log("Topic : ", topic);
                     if (!topic) {
                         console.log("⚠️ Topic not in pairing data, attempting to retrieve from WalletConnect client...");
                         try {
-                            const wcClient = (hc as any).walletConnectClient;
-                            if (wcClient && wcClient.session) {
-                                const sessions = Array.from(wcClient.session.values());
-                                if (sessions.length > 0) {
-                                    const latestSession = sessions[sessions.length - 1] as any;
-                                    topic = latestSession.topic;
-                                    console.log("✅ Retrieved topic from WalletConnect session:", topic);
+                            console.log("Hedera Client:", hc);
+
+                            // Attempt to extract topic from hc.pairingString
+                            if (!topic && (hc as any).pairingString) {
+                                const match = (hc as any).pairingString.match(/^wc:(.*?)@/);
+                                if (match && match[1]) {
+                                    topic = match[1];
+                                    console.log("✅ Extracted topic from hc.pairingString:", topic);
+                                }
+                            }
+
+                            if (!topic) {
+                                const wcClient = (hc as any).walletConnectClient;
+                                console.log("WalletConnect client:", wcClient);
+                                if (wcClient && wcClient.session) {
+                                    const sessions = Array.from(wcClient.session.values());
+                                    if (sessions.length > 0) {
+                                        const latestSession = sessions[sessions.length - 1] as any;
+                                        topic = latestSession.topic;
+                                        console.log("✅ Retrieved topic from WalletConnect session:", topic);
+                                    }
                                 }
                             }
                         } catch (e) {
@@ -208,6 +210,21 @@ export function useHashConnect() {
                         error: null,
                     });
                 });
+
+                // Initialize
+                await hc.init();
+                setHashconnect(hc);
+
+                // Restore original console.error after initialization
+                console.error = originalConsoleError;
+
+                // Mark as initialized
+                setWalletState((prev) => ({
+                    ...prev,
+                    isInitializing: false,
+                }));
+
+                console.log("✅ HashConnect initialized successfully");
 
                 // Check for existing session
                 const savedSession = localStorage.getItem("hashconnectSession");
@@ -311,7 +328,18 @@ export function useHashConnect() {
         }
 
         // Try to get topic from session data first
-        let topic: string | undefined = sessionData.topic || sessionData.pairingString;
+        let topic: string | undefined = sessionData.topic;
+
+        console.log("Session data:", sessionData);
+        // If topic is missing but we have pairingString, try to extract topic from it
+        if (!topic && sessionData.pairingString) {
+            console.log("⚠️ Topic missing, extracting from pairingString...");
+            const match = sessionData.pairingString.match(/^wc:(.*?)@/);
+            if (match && match[1]) {
+                topic = match[1];
+                console.log("✅ Extracted topic from pairingString:", topic);
+            }
+        }
 
         if (topic) {
             console.log("✅ Topic found in session data:", topic);
@@ -322,28 +350,46 @@ export function useHashConnect() {
         console.log("⚠️ Topic not in session data, retrieving from HashConnect instance...");
 
         try {
-            // Access the internal WalletConnect client to get active sessions
-            const wcClient = (hashconnect as any).walletConnectClient;
+            // 1. Check pairingData on the instance
+            if ((hashconnect as any).pairingData && (hashconnect as any).pairingData.topic) {
+                topic = (hashconnect as any).pairingData.topic;
+                console.log("✅ Retrieved topic from hashconnect.pairingData:", topic);
+            }
 
-            if (wcClient && wcClient.session) {
-                const sessions = Array.from(wcClient.session.values());
-                console.log("📋 Found WalletConnect sessions:", sessions.length);
-
-                if (sessions.length > 0) {
-                    // Use the most recent session
-                    const latestSession = sessions[sessions.length - 1] as any;
-                    topic = latestSession.topic;
-                    console.log("✅ Retrieved topic from active session:", topic);
-
-                    // Update session data with the topic for future use
-                    const updatedSessionData = { ...sessionData, topic };
-                    setSessionData(updatedSessionData);
-                    localStorage.setItem("hashconnectSession", JSON.stringify(updatedSessionData));
-                    console.log("💾 Updated session data with topic");
-
-                    return topic ?? null;
+            // 1.5. Check pairingString on the instance
+            if (!topic && (hashconnect as any).pairingString) {
+                const match = (hashconnect as any).pairingString.match(/^wc:(.*?)@/);
+                if (match && match[1]) {
+                    topic = match[1];
+                    console.log("✅ Retrieved topic from hashconnect.pairingString:", topic);
                 }
             }
+
+            // 2. Check WalletConnect client sessions if still not found
+            if (!topic) {
+                const wcClient = (hashconnect as any).walletConnectClient;
+                if (wcClient && wcClient.session) {
+                    const sessions = Array.from(wcClient.session.values());
+                    console.log("📋 Found WalletConnect sessions:", sessions.length);
+
+                    if (sessions.length > 0) {
+                        // Use the most recent session
+                        const latestSession = sessions[sessions.length - 1] as any;
+                        topic = latestSession.topic;
+                        console.log("✅ Retrieved topic from active session:", topic);
+                    }
+                }
+            }
+
+            // If we found a topic, update the session data
+            if (topic) {
+                const updatedSessionData = { ...sessionData, topic };
+                setSessionData(updatedSessionData);
+                localStorage.setItem("hashconnectSession", JSON.stringify(updatedSessionData));
+                console.log("💾 Updated session data with topic");
+                return topic;
+            }
+
         } catch (e) {
             console.warn("⚠️ Could not retrieve topic from HashConnect instance:", e);
         }
@@ -374,6 +420,7 @@ export function useHashConnect() {
 
     // Send transaction
     const sendTransaction = useCallback(async (transaction: any): Promise<TransactionResponse> => {
+
         if (!hashconnect || !sessionData) {
             return {
                 success: false,
@@ -387,6 +434,8 @@ export function useHashConnect() {
 
             // Use the helper function to get the topic
             const topic = await getTopic();
+            console.log("Topic:", topic);
+
 
             if (!topic) {
                 console.error("❌ No topic found");
@@ -397,14 +446,26 @@ export function useHashConnect() {
             console.log("✅ Using topic:", topic);
 
             // Set transaction nodes - required before freezing
+            // Must use AccountId objects, not strings
             transaction.setNodeAccountIds([
-                "0.0.3",
-                "0.0.4",
-                "0.0.5"
+                AccountId.fromString("0.0.3"),
+                AccountId.fromString("0.0.4"),
+                AccountId.fromString("0.0.5")
             ]);
             console.log("✅ Transaction nodes set");
 
-            // Freeze the transaction
+            // Set max transaction fee (required for some transaction types)
+            transaction.setMaxTransactionFee(100_000_000); // 1 HBAR in tinybars
+            console.log("✅ Max transaction fee set");
+
+            // Set transaction ID manually
+            const accountId = AccountId.fromString(sessionData.accountIds[0]);
+            const txId = TransactionId.generate(accountId);
+            transaction.setTransactionId(txId);
+            console.log("✅ Transaction ID set:", txId.toString());
+
+            // Freeze the transaction without a client
+            // This works because we've manually set all required fields
             const frozenTransaction = transaction.freeze();
             console.log("✅ Transaction frozen");
 
@@ -412,36 +473,17 @@ export function useHashConnect() {
             const transactionBytes = frozenTransaction.toBytes();
             console.log("✅ Transaction converted to bytes");
 
-            // Send to wallet
-            console.log("📤 Sending transaction to wallet...");
+            // Get the signer from HashConnect
+            console.log("📤 Getting signer for account:", sessionData.accountIds[0]);
+            const signer = hashconnect.getSigner(accountId);
+            console.log("✅ Signer obtained");
 
-            // Convert Uint8Array to number[] for better compatibility
-            const transactionBytesArray = Array.from(transactionBytes);
+            // Use the signer to call (sign and execute) the transaction
+            console.log("📤 Sending transaction to wallet for signing and execution...");
+            const txResponse = await signer.call(frozenTransaction);
+            console.log("✅ Transaction executed by wallet");
 
-            const response = await hashconnect.sendTransaction(topic, {
-                topic: topic,
-                byteArray: transactionBytesArray,
-                metadata: {
-                    accountToSign: sessionData.accountIds[0],
-                    returnTransaction: false,
-                }
-            });
-
-            console.log("📥 Received response from wallet:", response);
-
-            if (response.success === false) {
-                throw new Error(response.error || "Transaction rejected by wallet");
-            }
-
-            let transactionId = "Unknown";
-            if (response.receipt?.transactionId) {
-                transactionId = response.receipt.transactionId.toString();
-            } else if (response.response?.transactionId) {
-                transactionId = response.response.transactionId.toString();
-            } else if (response.transactionId) {
-                transactionId = response.transactionId.toString();
-            }
-
+            const transactionId = txResponse.transactionId.toString();
             console.log("✅ Transaction successful! ID:", transactionId);
 
             return {
@@ -452,10 +494,10 @@ export function useHashConnect() {
             console.error("❌ Transaction failed:", error);
 
             // Check if it's a WalletConnect error
-            if (error?.message?.includes("Child.LOG") || error?.message?.includes("Child.error")) {
+            if (error?.data?.status) {
                 return {
                     success: false,
-                    error: "Wallet connection error. Please reconnect your wallet."
+                    error: error.data.status
                 };
             }
 

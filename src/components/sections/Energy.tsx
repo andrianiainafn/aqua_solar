@@ -65,7 +65,7 @@ const generateForecast = () => {
 };
 
 import { useHashConnect } from "@/lib/hooks/useHashConnect";
-import { TopicMessageSubmitTransaction } from "@hashgraph/sdk";
+import { TopicMessageSubmitTransaction, TopicId } from "@hashgraph/sdk";
 
 export function Energy() {
   const { isConnected, connectWallet, sendTransaction, resetConnection } = useHashConnect();
@@ -121,6 +121,7 @@ export function Energy() {
   }, [systemStatus]);
 
   const handleSellEnergy = async () => {
+    console.log("isConnected", isConnected);
     if (!isConnected) {
       toast.error("Portefeuille non connecté", {
         description: "Veuillez connecter votre portefeuille pour vendre de l'énergie.",
@@ -144,7 +145,7 @@ export function Energy() {
     try {
       // Create HCS transaction to log the sale
       // Using a public testnet topic for demo purposes
-      const topicId = "0.0.4576384";
+      const topicId = TopicId.fromString("0.0.4576384");
       const totalPrice = energyToSell * pricePerKwh;
       const message = JSON.stringify({
         type: "ENERGY_SALE",
@@ -162,6 +163,8 @@ export function Energy() {
 
       const result = await sendTransaction(transaction);
 
+      console.log("result", result);
+
       if (result.success) {
         setCurrentEnergy((prev) => Math.max(0, prev - energyToSell));
         setTransactionDetails({
@@ -177,10 +180,17 @@ export function Energy() {
       }
     } catch (error: any) {
       console.error("Sale failed:", error);
+
+      let errorMessage = error.message || "Une erreur est survenue lors de la vente.";
+
+      if (errorMessage.includes("No pairing topic found")) {
+        errorMessage = "Erreur de connexion : Topic manquant. Veuillez réinitialiser la connexion.";
+      }
+
       setTransactionDetails({
         amount: energyToSell,
         price: energyToSell * pricePerKwh,
-        error: error.message || "Une erreur est survenue lors de la vente.",
+        error: errorMessage,
       });
       setShowFailureModal(true);
     } finally {

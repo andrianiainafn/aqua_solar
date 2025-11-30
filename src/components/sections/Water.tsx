@@ -8,10 +8,15 @@ import {
   ArrowUpRight,
   CheckCircle2,
   Waves,
+  X,
+  Loader2,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
 import { Progress } from "../ui/progress";
+import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
 import {
   LineChart,
@@ -25,6 +30,9 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { toast } from "sonner";
+
+import { useHashConnect } from "@/lib/hooks/useHashConnect";
+import { TopicMessageSubmitTransaction, TopicId } from "@hashgraph/sdk";
 
 // Simulation de données pour l'historique de distribution (24 dernières heures)
 const generateDistributionHistory = () => {
@@ -73,6 +81,7 @@ const generateWaterForecast = () => {
 };
 
 export function Water() {
+  const { isConnected, connectWallet, sendTransaction, resetConnection } = useHashConnect();
   const [currentWater, setCurrentWater] = useState(200);
   const [totalPumpedToday, setTotalPumpedToday] = useState(150);
   const [systemStatus, setSystemStatus] = useState<
@@ -85,8 +94,20 @@ export function Water() {
   const [distributionHistory] = useState(generateDistributionHistory());
   const [forecast] = useState(generateWaterForecast());
   const [selling, setSelling] = useState(false);
+  const [waterToSell, setWaterToSell] = useState(50);
   const [weatherData, setWeatherData] = useState<{ today: any; tomorrow: any } | null>(null);
   const [recommendation, setRecommendation] = useState("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showFailureModal, setShowFailureModal] = useState(false);
+  const [transactionDetails, setTransactionDetails] = useState<{
+    amount: number;
+    price: number;
+    transactionId?: string;
+    error?: string;
+  } | null>(null);
+
+  // Price per liter in EUR
+  const pricePerLiter = 0.02;
 
   useEffect(() => {
     async function loadWeather() {
@@ -123,22 +144,227 @@ export function Water() {
   }, [systemStatus, currentWater]);
 
   const handleSellWater = async () => {
+    console.log("isConnected", isConnected);
+    if (!isConnected) {
+      toast.error("Portefeuille non connecté", {
+        description: "Veuillez connecter votre portefeuille pour vendre de l'eau.",
+        action: {
+          label: "Connecter",
+          onClick: connectWallet,
+        },
+      });
+      return;
+    }
+
+    if (waterToSell <= 0 || waterToSell > currentWater) {
+      toast.error("Quantité invalide", {
+        description: `Veuillez entrer une quantité entre 1 et ${currentWater.toFixed(0)} litres`,
+      });
+      return;
+    }
+
     setSelling(true);
 
-    // Simulation de transaction blockchain
-    setTimeout(() => {
-      setCurrentWater((prev) => Math.max(0, prev - 50));
-      setSelling(false);
-      toast.success("Transaction réussie !", {
-        description: "Vente de 50 litres à Village de Lomé pour 1.00€",
+    try {
+      // Create HCS transaction to log the sale
+      // Using a public testnet topic for demo purposes
+      const topicId = TopicId.fromString("0.0.4576384");
+      const totalPrice = waterToSell * pricePerLiter;
+      const message = JSON.stringify({
+        type: "WATER_SALE",
+        amount: waterToSell,
+        unit: "liters",
+        pricePerUnit: pricePerLiter,
+        totalPrice: totalPrice,
+        currency: "EUR",
+        timestamp: new Date().toISOString(),
       });
-    }, 2000);
+
+      const transaction = new TopicMessageSubmitTransaction()
+        .setTopicId(topicId)
+        .setMessage(message);
+
+      const result = await sendTransaction(transaction);
+
+      console.log("result", result);
+
+      if (result.success) {
+        setCurrentWater((prev) => Math.max(0, prev - waterToSell));
+        setTransactionDetails({
+          amount: waterToSell,
+          price: totalPrice,
+          transactionId: result.transactionId,
+        });
+        setShowSuccessModal(true);
+        // Reset the input to 50 after successful sale
+        setWaterToSell(50);
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error: any) {
+      console.error("Sale failed:", error);
+
+      let errorMessage = error.message || "Une erreur est survenue lors de la vente.";
+
+      if (errorMessage.includes("No pairing topic found")) {
+        errorMessage = "Erreur de connexion : Topic manquant. Veuillez réinitialiser la connexion.";
+      }
+
+      setTransactionDetails({
+        amount: waterToSell,
+        price: waterToSell * pricePerLiter,
+        error: errorMessage,
+      });
+      setShowFailureModal(true);
+    } finally {
+      setSelling(false);
+    }
   };
 
   const waterPercentage = (currentWater / 500) * 100;
 
   return (
     <div className="space-y-6">
+      {/* Success Modal */}
+      {showSuccessModal && transactionDetails && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative animate-in fade-in zoom-in duration-300">
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X size={24} />
+            </button>
+
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="text-green-600" size={32} />
+              </div>
+
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                Transaction Réussie !
+              </h3>
+
+              <p className="text-gray-600 mb-6">
+                Votre eau a été vendue avec succès sur la blockchain Hedera
+              </p>
+
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 mb-6 border border-green-200">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Quantité vendue</span>
+                    <span className="font-bold text-gray-900">
+                      {transactionDetails.amount.toFixed(0)} litres
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Prix total</span>
+                    <span className="font-bold text-green-600 text-lg">
+                      €{transactionDetails.price.toFixed(2)}
+                    </span>
+                  </div>
+                  {transactionDetails.transactionId && (
+                    <div className="pt-3 border-t border-green-200">
+                      <p className="text-xs text-gray-500 mb-1">ID de transaction</p>
+                      <p className="text-xs font-mono bg-white px-3 py-2 rounded border border-green-200 break-all">
+                        {transactionDetails.transactionId}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <Button
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3"
+              >
+                Parfait !
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Failure Modal */}
+      {showFailureModal && transactionDetails && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative animate-in fade-in zoom-in duration-300">
+            <button
+              onClick={() => setShowFailureModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X size={24} />
+            </button>
+
+            <div className="text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <XCircle className="text-red-600" size={32} />
+              </div>
+
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                Transaction Échouée
+              </h3>
+
+              <p className="text-gray-600 mb-6">
+                Une erreur s'est produite lors de la vente de votre eau
+              </p>
+
+              <div className="bg-gradient-to-br from-red-50 to-rose-50 rounded-xl p-6 mb-6 border border-red-200">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Quantité tentée</span>
+                    <span className="font-bold text-gray-900">
+                      {transactionDetails.amount.toFixed(0)} litres
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Prix total</span>
+                    <span className="font-bold text-gray-900">
+                      €{transactionDetails.price.toFixed(2)}
+                    </span>
+                  </div>
+                  {transactionDetails.error && (
+                    <div className="pt-3 border-t border-red-200">
+                      <p className="text-xs text-gray-500 mb-1">Erreur</p>
+                      <p className="text-sm text-red-600 bg-white px-3 py-2 rounded border border-red-200">
+                        {transactionDetails.error}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => setShowFailureModal(false)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Fermer
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowFailureModal(false);
+                    handleSellWater();
+                  }}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Réessayer
+                </Button>
+              </div>
+              <div className="mt-4 text-center">
+                <button
+                  onClick={resetConnection}
+                  className="text-xs text-gray-500 hover:text-red-600 underline"
+                >
+                  Problèmes de connexion ? Réinitialiser le portefeuille
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* En-tête de la section */}
       <div className="flex items-center justify-between">
         <div>
@@ -335,18 +561,28 @@ export function Water() {
 
               {/* Détails de la vente */}
               <div className="bg-white/10 rounded-lg p-4 mb-6 backdrop-blur-sm">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-cyan-100">Quantité</span>
-                  <span className="font-bold">50 litres</span>
+                <div className="mb-4">
+                  <label className="text-sm text-cyan-100 mb-2 block">Quantité (litres)</label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max={currentWater}
+                    step="1"
+                    value={waterToSell}
+                    onChange={(e) => setWaterToSell(parseInt(e.target.value) || 0)}
+                    className="bg-white/20 border-white/30 text-white placeholder:text-cyan-200 focus:bg-white/30"
+                    disabled={selling}
+                  />
+                  <p className="text-xs text-cyan-200 mt-1">Disponible: {currentWater.toFixed(0)} litres</p>
                 </div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm text-cyan-100">Prix unitaire</span>
-                  <span className="font-bold">0.02 €/L</span>
+                  <span className="font-bold">€{pricePerLiter.toFixed(2)}/L</span>
                 </div>
                 <div className="border-t border-white/20 pt-2 mt-2">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-cyan-100">Total</span>
-                    <span className="text-lg font-bold">1.00 €</span>
+                    <span className="text-lg font-bold">€{(waterToSell * pricePerLiter).toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -358,15 +594,20 @@ export function Water() {
 
             <Button
               onClick={handleSellWater}
-              disabled={selling || currentWater < 50}
+              disabled={selling || currentWater < 1 || waterToSell <= 0 || waterToSell > currentWater}
               className="w-full bg-white text-cyan-600 hover:bg-cyan-50 font-semibold py-6"
             >
               {selling ? "Transaction en cours..." : "Vendre maintenant"}
             </Button>
 
-            {currentWater < 50 && (
+            {currentWater < 1 && (
               <p className="text-xs text-cyan-200 text-center mt-2">
                 Eau insuffisante pour la vente
+              </p>
+            )}
+            {waterToSell > currentWater && currentWater >= 1 && (
+              <p className="text-xs text-cyan-200 text-center mt-2">
+                Quantité supérieure à l'eau disponible
               </p>
             )}
           </div>
