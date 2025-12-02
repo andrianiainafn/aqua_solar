@@ -193,6 +193,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 This project is part of a hackathon submission.
 
-----
+---
 
 **HelioSol Flow** - Empowering African communities through decentralized energy and water infrastructure.
