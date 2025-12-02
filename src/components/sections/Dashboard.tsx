@@ -20,7 +20,7 @@ interface DashboardProps {
 export function Dashboard({ onLogout }: DashboardProps) {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [currentTime, setCurrentTime] = useState("");
-  const { accountId, walletName } = useHashConnect();
+  const { accountId } = useHashConnect();
 
   useEffect(() => {
     // Mettre à jour l'heure côté client pour éviter les problèmes d'hydratation
@@ -64,7 +64,7 @@ export function Dashboard({ onLogout }: DashboardProps) {
                 <p className="text-sm font-semibold text-gray-900">
                   {accountId ? (
                     <span>
-                      {accountId} <span className="text-gray-500 font-normal">({walletName || "Wallet"})</span>
+                      {accountId} <span className="text-gray-500 font-normal">Wallet</span>
                     </span>
                   ) : (
                     currentTime || "--:--:--"
